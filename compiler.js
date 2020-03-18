@@ -122,10 +122,10 @@ function Block(parents) {
                 text.push( 'pop '+ins.w.v );
             } else if(ins.op == 'JMP') {
                 text.push( 'jmp '+ins.label );
-            } else if(ins.op == 'JNZ') {
-                text.push( 'ifNotZero '+ins.r1.v+', '+ins.label );
-            } else if(ins.op == 'JZ') {
-                text.push( 'ifZero '+ins.r1.v+', '+ins.label );
+            } else if(ins.op == 'ifTrue') {
+                text.push( 'ifTrue '+ins.r1.v+', '+ins.label );
+            } else if(ins.op == 'ifFalse') {
+                text.push( 'ifFalse '+ins.r1.v+', '+ins.label );
             } else if(ins.op == 'functionstart') {
                 text.push( 'function '+ins.name );
                 // console.log('SUB ESP, 12');
@@ -176,9 +176,9 @@ function Block(parents) {
                 console.log('POP '+ins.w.v);
             } else if(ins.op == 'JMP') {
                 console.log('JMP '+ins.label);
-            } else if(ins.op == 'JNZ') {
+            } else if(ins.op == 'ifTrue') {
                 console.log('JNZ '+ins.label);
-            } else if(ins.op == 'JZ') {
+            } else if(ins.op == 'ifFalse') {
                 console.log('JZ '+ins.label);                
             } else if(ins.op == 'functionstart') {
                 console.log(ins.name+':');
@@ -305,7 +305,6 @@ function parseIfStatement(b) {
     var prev = b;
 
     var trueBlock = new Block([b]);
-    //var falseBlock = new Block([b]);    
 
     ifStmt++;
     comment(program.split(/\n/)[0]);
@@ -314,17 +313,17 @@ function parseIfStatement(b) {
     b = parseSum(b);
     var v = popVStack(); // consider the value as used
     //b.emit({op:'=', w: getTmpVar(), r1: v});
-    b.emit({op:'JNZ', r1: v, label:trueBlock.name});
     eatToken(')');
     eatToken('{');
-    b = parseStatementList(trueBlock);
+    trueBlock = parseStatementList(trueBlock);
     eatToken('}');
     
     indent--;
 
-    var b = new Block([b, prev], 'endIf');
+    var endBlock = new Block([trueBlock, prev], 'endIf');
+    prev.emit({op:'ifFalse', r1: v, label:endBlock.name});
 
-    return b;
+    return endBlock;
 }
 
 whileStmt=0;
@@ -342,12 +341,12 @@ function parseWhileStatement(b) {
     eatToken('(');
     startBlock = parseSum(startBlock);
     var v = popVStack(); // consider the value is used
-    condBlock.emit({op:'JZ', r1: v, label:endBlock.name})
+    condBlock.emit({op:'ifFalse', r1: v, label:endBlock.name})
     eatToken(')');
     eatToken('{');
     whileBlock = parseStatementList(whileBlock);
     eatToken('}');
-    whileBlock.emit({op:'JMP', label:startBlock.name});
+    whileBlock.emit({op:'JMP', label:condBlock.name});
 
     indent--;
 
