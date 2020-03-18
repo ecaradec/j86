@@ -20,9 +20,11 @@ function eatToken(t) {
     else if(m=program.match(/^([+-])/))
         currentToken = {'t': 'SUM', l: 1, v:m[1]};
     else if(m=program.match(/^\*/))
-        currentToken = {'t': 'PRODUCT', l: 1};
+        currentToken = {'t': 'PRODUCT', l: 1};      
     else if(m=program.match(/^(=) +/))
         currentToken = {'t': 'EQUAL', l: 1};
+    else if(m=program.match(/^(==) +/))
+        currentToken = {'t': '==', l: 2};
     else if(m=program.match(/^(WHILE)/))
         currentToken = {'t': 'WHILE', l: 5};
     else if(m=program.match(/^(FUNCTION)/))
@@ -105,6 +107,8 @@ function Block(parents) {
                 text.push( ins.w.v+' := '+ins.r1.v+' - '+ins.r2.v );
             } else if(ins.op == '=') {
                 text.push( ins.w.v+' := '+ins.r1.v );
+            } else if(ins.op == '==') {
+                text.push( ins.w.v+' := '+ins.r1.v+' == '+ins.r2.v );
             } else if(ins.op == 'PUSH') {
                 text.push( 'push '+ins.r1.v );
             } else if(ins.op == 'POP') {
@@ -216,7 +220,7 @@ function getTmpVar() {
 
 
 function parseSum(b) {
-    logStack("parseSum"); indent++;
+    logStack("parseSum");indent++;
 
     parseProduct(b);
     if( getToken().t == 'SUM' ) {
@@ -275,6 +279,11 @@ function parseAssignment(b) {
 
     return b;
 }
+function parseCondStatement(b) {
+    parseSum(b);
+    eatToken('==');
+    parseSum(b);
+}
 
 var ifStmt=0;
 function parseIfStatement(b) {
@@ -284,12 +293,14 @@ function parseIfStatement(b) {
     var trueBlock = new Block([b]);
 
     ifStmt++;
-    comment(program.split(/\n/)[0]);
     eatToken('IF');
     eatToken('(');
-    b = parseSum(b);
-    var v = popVStack(); // consider the value as used
-    //b.emit({op:'=', w: getTmpVar(), r1: v});
+    b = parseCondStatement(b);
+
+    var v2 = popVStack();
+    var v1 = popVStack();
+
+
     eatToken(')');
     eatToken('{');
     trueBlock = parseStatementList(trueBlock);
@@ -298,7 +309,9 @@ function parseIfStatement(b) {
     indent--;
 
     var endBlock = new Block([trueBlock, prev], 'endIf');
-    prev.emit({op:'ifFalse', r1: v, label:endBlock.name});
+    var tmp = {t:'INTRINSIC', v: '$cond'};
+    prev.emit({op: '==', w: tmp, r1: v1, r2:v2})
+    prev.emit({op:'ifFalse', r1: tmp, label:endBlock.name});
 
     return endBlock;
 }
@@ -316,9 +329,14 @@ function parseWhileStatement(b) {
 
     eatToken('WHILE');
     eatToken('(');
-    startBlock = parseSum(startBlock);
-    var v = popVStack(); // consider the value is used
-    condBlock.emit({op:'ifFalse', r1: v, label:endBlock.name})
+    b = parseCondStatement(b);
+
+    var v2 = popVStack();
+    var v1 = popVStack();
+
+    var tmp = {t:'INTRINSIC', v: '$cond'};
+    condBlock.emit({op: '==', w: tmp, r1: v1, r2:v2})
+    condBlock.emit({op:'ifFalse', r1: tmp, label:endBlock.name})
     eatToken(')');
     eatToken('{');
     whileBlock = parseStatementList(whileBlock);
@@ -429,11 +447,12 @@ function parseProgram(b) {
 var program = [
 "FUNCTION main() {",
 /*"a = 1*2+3*4+5*6;",
-"IF(1*1) { a = 1; }",
-"IF(1*1) { a = 2; }",*/
+"IF(1*1) { a = 1; }",*/
+//"b = 1;",
+//"IF(b == 1) { a = 2; }",
 // "a = 10;",
 "a = 1;",
-"WHILE( a ) { a = a + 1; }",
+"WHILE( a == 10 ) { a = a + 1; }",
 //"WHILE(c) { c = c - 1; }",
 "}",
 ""
@@ -446,7 +465,7 @@ function printIR() {
         for(var j in blockList[i].psi) {
             var psi = blockList[i].psi[j];
             if(psi.length>0) {
-                console.log( psi[0].v, '=', 'psi(', psi.slice(1).map(x=>x.v+':'+x.src.name).join(', '), ')' );
+                console.log( psi[0].v, ':=', 'psi(', psi.slice(1).map(x=>x.v+':'+x.src.name).join(', '), ')' );
             }
         }
         console.log( blockList[i].toStringIR().join("\n") );
@@ -459,20 +478,6 @@ function ssatransform(n, parent, liveVars) {
         return { t:'VAR', v: i+'_'+liveVars[i] };
     }    
 
-    // add psi
-    if(n.parents.length > 1) {
-        for(var i in liveVars) {
-            var r = ssa(i);
-            liveVars[i]++;
-            if(n.psi[i] == undefined) {
-                var w = ssa(i);
-                n.psi[i] = [w];
-            }
-            r.src = parent;
-            n.psi[i].push(r);
-        }
-    }
-
     if(n.visited == 'ssa')
         return;
     n.visited = 'ssa';
@@ -481,7 +486,7 @@ function ssatransform(n, parent, liveVars) {
     for(var i in n.assembly) {
         var ins = n.assembly[i];
         if(ins.w) {
-            if( liveVars[ins.w.v] == undefined )
+            if( ins.w.t == 'VAR' && liveVars[ins.w.v] == undefined )
                 liveVars[ins.w.v] = 0;
         }
 
@@ -491,13 +496,28 @@ function ssatransform(n, parent, liveVars) {
         if( ins.r2 && ins.r2.t == 'VAR' ) {
             ins.r2 = ssa(ins.r2.v);
         }
-        if( ins.w ) {
+        if( ins.w && ins.w.t == 'VAR' ) {
             liveVars[ins.w.v]++;
             ins.w = ssa(ins.w.v);            
         }
     }
 
     for(var i in n.children) {
+        // add psi
+        var c = n.children[i];
+        if(c.parents.length > 1) {
+            for(var j in liveVars) {
+                var r = ssa(j);
+                liveVars[j]++;
+                if(c.psi[j] == undefined) {
+                    var w = ssa(j);
+                    c.psi[j] = [w];
+                }
+                r.src = n;
+                c.psi[j].push(r);
+            }
+        }
+
         ssatransform(n.children[i], n, liveVars); 
     }
 }
@@ -557,8 +577,8 @@ let Graph = (function() {
 
         // build back graph and delete used registers
         this.addNode(dropped.id);
-        //var availReg = {'eax':true,'ebx':true, 'ecx':true, 'edx':true};
-        var availReg = {'EBX':true,'ECX':true};
+        var availReg = {'eax':true,'ebx':true, 'ecx':true, 'edx':true};
+        //var availReg = {'EBX':true,'ECX':true};
         for(var i in dropped.connections) {
             var n = dropped.connections[i];
             delete availReg[nodes[n].reg];
@@ -601,6 +621,7 @@ function buildGraph(n) {
     if(n.visited == 'graph')
         return;
     n.visited = 'graph';
+
     var assembly = n.assembly;
     for(var i=assembly.length-1; i>=0; i--) {
         if(assembly[i] == undefined) continue;
@@ -636,10 +657,10 @@ function buildGraph(n) {
     }
 }
 
-function assignRegisters(n) {
-    if(n.visited == 'assignRegisters')
+function replaceVars(n, registers) {
+    if(n.visited == 'replaceVars')
         return;
-    n.visited = 'assignRegisters';
+    n.visited = 'replaceVars';
 
     var assembly = [];
     for(var ii=0;ii<n.assembly.length;ii++) {
@@ -666,19 +687,9 @@ function assignRegisters(n) {
     n.assembly = assembly;
     
     for(var i in n.children) {
-        assignRegisters(n.children[i]);
+        replaceVars(n.children[i], registers);
     }    
 }
-
-//
-// Graph
-//
-/*console.log("\n* IR after register assignement");
-console.log("digraph g {");
-for(var b = 0; b < blockList.length;b++) {
-    console.log(blockList[b].toStringIR());
-}
-console.log("}");*/
 
 //
 // Print IR
@@ -707,7 +718,7 @@ function psiToIRTransform(n) {
         var inputs = psi.slice(1);
         for(var i in inputs) {
             var ass = inputs[i].src.assembly;
-            if(ass[ass.length-1].op == 'JMP')
+            if(ass[ass.length-1].op == 'JMP' || ass[ass.length-1].op == 'ifFalse' || ass[ass.length-1].op == 'ifTrue')
                 var lastInst = ass.pop();
             inputs[i].src.emit({ op: '=', w: psi[0], r1: inputs[i] });
             if(lastInst)
@@ -731,7 +742,7 @@ printIR();
 console.log("* IR WITH REGISTERS")
 buildGraph(block);
 var registers = g.assignReg();
-assignRegisters(block);
+replaceVars(block, registers);
 printIR();
 
 //
