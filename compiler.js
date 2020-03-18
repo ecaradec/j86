@@ -72,35 +72,89 @@ var blockList = [];
 function Block(parents) {
     blockList.push(this);
 
-    var assembly = [];
+    this.assembly = [];
     this.children = [];
-    this.name = 'block#'+blockId;
+    this.parents = [];
+    this.psi = [];
+    this.name = 'block_'+blockId;
     blockId++;
 
-    for(var p = 0; p < parents.length; p++) {
-        parents[p].children.push(this);
+    for(var i in parents) {
+        parents[i].children.push(this);
+        this.parents.push(i);
+    }
+
+    this.addParent = (p) => {
+        this.parents.push(p);
+        p.children.push(this);
     }
 
     this.emit = (data) => {
         if(data==undefined) data={};
-        assembly[assembly.length] = data;
-        return assembly.length - 1;
+        this.assembly.push(data);
+        return this.assembly.length - 1;
     }
 
     this.print = () => {
         console.log("# "+this.name, this.children.map( (x) => x.name ) );
-        for(var i=0;i<assembly.length;i++) {
-            var ins = {...assembly[i]};
+        for(var i=0;i<this.assembly.length;i++) {
+            var ins = {...this.assembly[i]};
 
             console.log(' '+JSON.stringify(ins));
         }
     }
 
-    this.dumpToAssembly = () => {
-        console.log("# "+this.name, this.children.map( (x) => x.name ) );
+    this.toStringIR = () => {
+        var text = [];
+        for(var i=0;i<this.assembly.length;i++) {
+            var ins = this.assembly[i];
+            if(ins.op == '*') {
+                text.push( ins.w.v+' := '+ins.r1.v+' * '+ins.r2.v );
+            } else if(ins.op == '+') {
+                text.push( ins.w.v+' := '+ins.r1.v+' + '+ins.r2.v );
+            } else if(ins.op == '-') {
+                text.push( ins.w.v+' := '+ins.r1.v+' - '+ins.r2.v );
+            } else if(ins.op == '=') {
+                text.push( ins.w.v+' := '+ins.r1.v );
+            } else if(ins.op == 'PUSH') {
+                text.push( 'push '+ins.r1.v );
+            } else if(ins.op == 'POP') {
+                text.push( 'pop '+ins.w.v );
+            } else if(ins.op == 'JMP') {
+                text.push( 'jmp '+ins.label );
+            } else if(ins.op == 'JNZ') {
+                text.push( 'ifNotZero '+ins.r1.v+', '+ins.label );
+            } else if(ins.op == 'JZ') {
+                text.push( 'ifZero '+ins.r1.v+', '+ins.label );
+            } else if(ins.op == 'functionstart') {
+                text.push( 'function '+ins.name );
+                // console.log('SUB ESP, 12');
+            } else if(ins.op == 'functionend') {
+                text.push( 'functionend' );
+            } else {
+                text.push( JSON.stringify(ins) );
+            }
+        }
+        return text;
+    }
 
-        for(var i=0;i<assembly.length;i++) {
-            var ins = assembly[i];
+    /*this.printGraph = () => {        
+        // console.log(this.name+':'); //, this.children.map( (x) => x.name ) );
+        var text = this.toStringIR();
+        if(text == '')
+            text = '0';
+        
+        console.log(this.name + ' [label=<'+text.replace(/\n/g,'<br/>')+'>]');            
+        for(var i in this.children) {                        
+            console.log(this.name + ' -> ' +this.children[i].name+';');
+        }        
+    }*/
+
+    this.printAssembly = () => {        
+        //console.log("# "+this.name, this.children.map( (x) => x.name ) );
+
+        for(var i=0;i<this.assembly.length;i++) {
+            var ins = this.assembly[i];
             if(ins.op == '*') {
                 console.log('MOV EAX, '+ins.r1.v);
                 console.log('MUL EAX, '+ins.r2.v);
@@ -109,6 +163,10 @@ function Block(parents) {
                 console.log('MOV EAX, '+ins.r1.v);
                 console.log('ADD EAX, '+ins.r2.v);
                 console.log('MOV '+ins.w.v+', EAX');
+            } else if(ins.op == '-') {
+                console.log('MOV EAX, '+ins.r1.v);
+                console.log('SUB EAX, '+ins.r2.v);
+                console.log('MOV '+ins.w.v+', EAX');                
             } else if(ins.op == '=') {
                 if(ins.w.v != ins.r1.v)
                     console.log('MOV '+ins.w.v+', '+ins.r1.v);
@@ -120,6 +178,8 @@ function Block(parents) {
                 console.log('JMP '+ins.label);
             } else if(ins.op == 'JNZ') {
                 console.log('JNZ '+ins.label);
+            } else if(ins.op == 'JZ') {
+                console.log('JZ '+ins.label);                
             } else if(ins.op == 'functionstart') {
                 console.log(ins.name+':');
                 // console.log('SUB ESP, 12');
@@ -131,12 +191,6 @@ function Block(parents) {
         }
     }
 
-}
-
-var dump = () => {
-    for(var b = 0; b < blockList.length;b++) {
-        blockList[b].print();
-    }
 }
 
 var block = new Block([]);
@@ -160,7 +214,7 @@ function logStack(n) {
     var leftPad = '';
     for(var i=0;i<indent;i++)
         leftPad+=' ';
-    console.log(leftPad, n);
+    // console.log(leftPad, n);
 }
 
 function parseTerm(b) {
@@ -190,7 +244,7 @@ function parseSum(b) {
     parseProduct(b);
     if( getToken().t == 'SUM' ) {
         var s = eatToken('SUM');
-        parseSum(b);
+        b = parseSum(b);
 
         var op2 = popVStack();
         var op1 = popVStack();
@@ -248,9 +302,10 @@ function parseAssignment(b) {
 var ifStmt=0;
 function parseIfStatement(b) {
     logStack("parseIfStatement"); indent++;
+    var prev = b;
 
     var trueBlock = new Block([b]);
-    var falseBlock = new Block([b]);
+    //var falseBlock = new Block([b]);    
 
     ifStmt++;
     comment(program.split(/\n/)[0]);
@@ -267,7 +322,7 @@ function parseIfStatement(b) {
     
     indent--;
 
-    var b = new Block([b, falseBlock], 'endIf');
+    var b = new Block([b, prev], 'endIf');
 
     return b;
 }
@@ -276,22 +331,23 @@ whileStmt=0;
 function parseWhileStatement(b) {
     logStack("parseWhileStatement"); indent++;
 
-    whileStmt++;
-    comment(program.split(/\n/)[0]);
-    
-    var whileBlock = new Block([b]);
-    var endBlock= new Block([whileBlock]);
+    whileStmt++;        
+    var startBlock = b;
+    var condBlock = new Block([startBlock]);
+    var whileBlock = new Block([condBlock]);
+    condBlock.addParent(whileBlock);
+    var endBlock = new Block([condBlock]);
 
     eatToken('WHILE');
     eatToken('(');
-    b = parseSum(b);
-    popVStack(); // consider the value is used
-    b.emit({op:'JNZ', label:endBlock.name})
+    startBlock = parseSum(startBlock);
+    var v = popVStack(); // consider the value is used
+    condBlock.emit({op:'JZ', r1: v, label:endBlock.name})
     eatToken(')');
     eatToken('{');
-    b = parseStatementList(b);
+    whileBlock = parseStatementList(whileBlock);
     eatToken('}');
-    b.emit({op:'JMP', label:whileBlock.name});
+    whileBlock.emit({op:'JMP', label:startBlock.name});
 
     indent--;
 
@@ -320,9 +376,8 @@ function parseStatement(b) {
 function parseFunction(b) {
     logStack("parseFunction"); indent++;
 
-    b = new Block([b]);
-
-    var functionAddress = assembly.length        
+    //b = new Block([b]);
+    
     eatToken('FUNCTION');
     var name = eatToken('NAME');    
 
@@ -343,7 +398,7 @@ function parseFunction(b) {
 
     indent--;
 
-    return b;
+    return new Block([b]);
 }
 
 function parseFunctionCall(b) {
@@ -399,10 +454,13 @@ function parseProgram(b) {
 
 var program = [
 "FUNCTION main() {",
-"a = 1*2+3*4+5*6;",
+/*"a = 1*2+3*4+5*6;",
 "IF(1*1) { a = 1; }",
-"IF(1*1) { a = 2; }",
-"WHILE(0) { c = 1; }",
+"IF(1*1) { a = 2; }",*/
+"a = 10;",
+"a = 1;",
+"IF( a ) { a = 1; }",
+//"WHILE(c) { c = c - 1; }",
 "}",
 ""
 ].join("\n");
@@ -410,6 +468,72 @@ var program = [
 eatToken('START');
 parseProgram(block);
 
+function dumpBlocks() {
+    for(var b = 0; b < blockList.length;b++) {
+        console.log('***',blockList[b].name, '***')
+        for(var i in blockList[b].assembly) {
+            console.log(JSON.stringify(blockList[b].assembly[i]));
+        }    
+    }
+}
+
+
+//
+// Print IR
+//
+console.log("\n* IR");
+for(var i in blockList) {
+    console.log(blockList[i].name+':')
+    console.log( blockList[i].toStringIR().join("\n") );
+}
+
+
+// Naive SSA Transform
+function ssatransform(n, liveVars) {    
+    function ssa(i) {
+        return { t:'VAR', v: i+'_'+liveVars[i] };
+    }    
+
+    // add psi
+    if(n.parents.length > 1) {
+        for(var i in liveVars) {
+            var psi = ssa(i);
+            liveVars[i]++;
+            if(n.psi[i] == undefined) n.psi[i] = [ssa(i)];
+            n.psi[i].push(psi);
+        }
+    }
+
+    if(n.visited == 'ssa')
+        return;
+    n.visited = 'ssa';
+
+    // apply SSA to instructions
+    for(var i in n.assembly) {
+        var ins = n.assembly[i];
+        if(ins.w) {
+            if( liveVars[ins.w.v] == undefined )
+                liveVars[ins.w.v] = 0;
+        }
+
+        if( ins.r1 && ins.r1.t == 'VAR' ) {
+            ins.r1 = ssa(ins.r1.v);
+        }
+        if( ins.r2 && ins.r2.t == 'VAR' ) {
+            ins.r2 = ssa(ins.r2.v);
+        }
+        if( ins.w ) {
+            liveVars[ins.w.v]++;
+            ins.w = ssa(ins.w.v);            
+        }
+    }
+
+    for(var i in n.children) {
+        ssatransform(n.children[i], liveVars); 
+    }
+}
+
+ssatransform(block, {});
 
 //
 //
@@ -540,9 +664,10 @@ for(var i=assembly.length-1; i>=0; i--) {
 //
 var registers = g.assignReg();
 
-/*console.log("* REGISTERS");
+console.log("* REGISTERS");
 console.log(registers);
-*/
+console.log("");
+
 function rr(v) {
     if(registers[v])
         return registers[v].reg;
@@ -550,43 +675,55 @@ function rr(v) {
 }
 
 //
-// Replace all variable with registers
+// 
 //
-console.log("\n* IR before register assignement");
-dump();
+/*for(var jj=0;jj<blockList.length;jj++) {
+    var assembly = blockList[jj].assembly;
+    for(var ii=0;ii<assembly.length;ii++) {
 
+        if(assembly[ii].r1 && assembly[ii].r1.t == 'VAR' && registers[assembly[ii].r1.v].t == 'REG') {
+            assembly[ii].r1 = registers[assembly[ii].r1.v];
+        }
 
-/*
-for(var ii=0;ii<assembly.length;ii++) {
+        if(assembly[ii].r2 && assembly[ii].r2.t == 'VAR' && registers[assembly[ii].r2.v].t == 'REG') {
+            assembly[ii].r2 = registers[assembly[ii].r2.v];
+        }
 
-    if(assembly[ii].r1 && assembly[ii].r1.t == 'VAR' && registers[assembly[ii].r1.v].t == 'REG') {
-        assembly[ii].r1 = registers[assembly[ii].r1.v];
+        if(assembly[ii].w && assembly[ii].w.t == 'VAR' && registers[assembly[ii].w.v].t == 'REG') {
+            assembly[ii].w = registers[assembly[ii].w.v];
+        }
+
     }
+}*/
 
-    if(assembly[ii].r2 && assembly[ii].r2.t == 'VAR' && registers[assembly[ii].r2.v].t == 'REG') {
-        assembly[ii].r2 = registers[assembly[ii].r2.v];
-    }
-
-    if(assembly[ii].w && assembly[ii].w.t == 'VAR' && registers[assembly[ii].w.v].t == 'REG') {
-        assembly[ii].w = registers[assembly[ii].w.v];
-    }
-
+//
+// Graph
+//
+/*console.log("\n* IR after register assignement");
+console.log("digraph g {");
+for(var b = 0; b < blockList.length;b++) {
+    console.log(blockList[b].toStringIR());
 }
+console.log("}");*/
 
 
 //
-// Print IR
+// Print SSA-IR
 //
-console.log("* IR");
-for(var i=0;i<assembly.length;i++) {
-    console.log(assembly[i]);
+console.log("* SSA-IR");
+for(var i in blockList) {
+    console.log( blockList[i].name+':' )
+    console.log( blockList[i].psi );
+    console.log( blockList[i].toStringIR().join("\n") );
 }
-*/
 
 
 //
 // Print assembly
 //
-console.log("\n* Assembly");
-block.dumpToAssembly();
+/*console.log("\n* Assembly");
+for(var i in blockList) {
+    console.log(blockList[i].name+':')
+    blockList[i].printAssembly();
+}*/
 
