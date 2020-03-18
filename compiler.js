@@ -55,17 +55,6 @@ function eatToken(t) {
     return ret;
 }
 
-var assembly = [];
-var assemblydata = [];
-commentStr = '';
-function emit(data) {
-    if(data==undefined) data={};
-    assembly[assembly.length] = data;
-    commentStr = '';
-    return assembly.length - 1;
-}
-
-
 var blockId = 0;
 var indent = 0;
 var blockList = [];
@@ -137,18 +126,6 @@ function Block(parents) {
         }
         return text;
     }
-
-    /*this.printGraph = () => {        
-        // console.log(this.name+':'); //, this.children.map( (x) => x.name ) );
-        var text = this.toStringIR();
-        if(text == '')
-            text = '0';
-        
-        console.log(this.name + ' [label=<'+text.replace(/\n/g,'<br/>')+'>]');            
-        for(var i in this.children) {                        
-            console.log(this.name + ' -> ' +this.children[i].name+';');
-        }        
-    }*/
 
     this.printAssembly = () => {        
         //console.log("# "+this.name, this.children.map( (x) => x.name ) );
@@ -435,8 +412,6 @@ function parseProgram(b) {
     return b;
 }
 
-
-
 /*var program = [
 "FUNCTION test() { a = a + 1; }",
 "FUNCTION main() {",
@@ -464,28 +439,18 @@ var program = [
 ""
 ].join("\n");
 
-eatToken('START');
-parseProgram(block);
-
-function dumpBlocks() {
-    for(var b = 0; b < blockList.length;b++) {
-        console.log('***',blockList[b].name, '***')
-        for(var i in blockList[b].assembly) {
-            console.log(JSON.stringify(blockList[b].assembly[i]));
-        }    
+function printIR() {
+    for(var i in blockList) {
+        console.log( blockList[i].name+':' );
+        // console.log(JSON.stringify(blockList[i].psi.length)
+        for(var j in blockList[i].psi) {
+            var psi = blockList[i].psi[j];
+            if(psi.length>0)
+                console.log( psi[0].v, '=', 'psi(', psi.map(x=>x.v).splice(1).join(', '), ')' );
+        }
+        console.log( blockList[i].toStringIR().join("\n") );
     }
 }
-
-
-//
-// Print IR
-//
-console.log("\n* IR");
-for(var i in blockList) {
-    console.log(blockList[i].name+':')
-    console.log( blockList[i].toStringIR().join("\n") );
-}
-
 
 // Naive SSA Transform
 function ssatransform(n, liveVars) {    
@@ -534,8 +499,6 @@ function ssatransform(n, liveVars) {
         ssatransform(n.children[i], liveVars); 
     }
 }
-
-ssatransform(block, {});
 
 //
 //
@@ -632,55 +595,51 @@ let g = new Graph;
 var activeNodes = {};
 
 // should parse code as a graph too
-for(var i=assembly.length-1; i>=0; i--) {
-    if(assembly[i] == undefined) continue;
+function buildGraph(n) {
+    if(n.visited == 'graph')
+        return;
+    n.visited = 'graph';
+    var assembly = n.assembly;
+    for(var i=assembly.length-1; i>=0; i--) {
+        if(assembly[i] == undefined) continue;
 
-    //
-    // after instruction
-    //
-    // A new variable is written
-    if(assembly[i].w != undefined)
-        activeNodes[assembly[i].w.v] = true;
-    
-    g.addFullyLinkedNodes(Object.keys(activeNodes));
+        //
+        // after instruction
+        //
+        // A new variable is written
+        if(assembly[i].w != undefined)
+            activeNodes[assembly[i].w.v] = true;
+        
+        g.addFullyLinkedNodes(Object.keys(activeNodes));
 
-    // 
-    // before instruction
-    //
-    // Remove write (precedent value is ignored)
-    // Add read (variables are required)
-    if(assembly[i].w != undefined)    
-        delete activeNodes[assembly[i].w.v];
+        // 
+        // before instruction
+        //
+        // Remove write (precedent value is ignored)
+        // Add read (variables are required)
+        if(assembly[i].w != undefined)    
+            delete activeNodes[assembly[i].w.v];
 
-    if(assembly[i].r1 != undefined)
-        activeNodes[assembly[i].r1.v] = true;
+        if(assembly[i].r1 != undefined)
+            activeNodes[assembly[i].r1.v] = true;
 
-    if(assembly[i].r2 != undefined)
-        activeNodes[assembly[i].r2.v] = true;
+        if(assembly[i].r2 != undefined)
+            activeNodes[assembly[i].r2.v] = true;
 
-    g.addFullyLinkedNodes(Object.keys(activeNodes));
+        g.addFullyLinkedNodes(Object.keys(activeNodes));
+    }
+
+    for(var i in n.children) {
+        buildGraph(n.children[i]);
+    }
 }
 
-//
-// Assign registers to variables
-//
-var registers = g.assignReg();
+function assignRegisters(n) {
+    if(n.visited == 'assignRegisters')
+        return;
+    n.visited = 'assignRegisters';
 
-console.log("* REGISTERS");
-console.log(registers);
-console.log("");
-
-function rr(v) {
-    if(registers[v])
-        return registers[v].reg;
-    return v;
-}
-
-//
-// 
-//
-/*for(var jj=0;jj<blockList.length;jj++) {
-    var assembly = blockList[jj].assembly;
+    var assembly = n.assembly;
     for(var ii=0;ii<assembly.length;ii++) {
 
         if(assembly[ii].r1 && assembly[ii].r1.t == 'VAR' && registers[assembly[ii].r1.v].t == 'REG') {
@@ -696,7 +655,11 @@ function rr(v) {
         }
 
     }
-}*/
+    
+    for(var i in n.children) {
+        assignRegisters(n.children[i]);
+    }    
+}
 
 //
 // Graph
@@ -708,22 +671,36 @@ for(var b = 0; b < blockList.length;b++) {
 }
 console.log("}");*/
 
+//
+// Print IR
+//
+console.log("\n* IR");
+eatToken('START');
+parseProgram(block);
+printIR();
 
 //
 // Print SSA-IR
 //
 console.log("* SSA-IR");
-for(var i in blockList) {
-    console.log( blockList[i].name+':' );
-    // console.log(JSON.stringify(blockList[i].psi.length)
-    for(var j in blockList[i].psi) {
-        var psi = blockList[i].psi[j];
-        if(psi.length>0)
-            console.log( psi[0].v, '=', 'psi(', psi.map(x=>x.v).splice(1).join(', '), ')' );
-    }
-    console.log( blockList[i].toStringIR().join("\n") );
-}
+ssatransform(block, {});
+printIR();
 
+//
+// Transform Psi function to IR
+//
+
+//
+// Assign registers
+//
+console.log("* REGISTERS");
+buildGraph(block);
+var registers = g.assignReg();
+assignRegisters(block);
+// console.log(JSON.stringify(registers));
+// console.log("");
+console.log("* REGISTER-SSA-IR")
+printIR();
 
 //
 // Print assembly
