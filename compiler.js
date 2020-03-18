@@ -496,10 +496,13 @@ function ssatransform(n, liveVars) {
     // add psi
     if(n.parents.length > 1) {
         for(var i in liveVars) {
-            var psi = ssa(i);
+            var r = ssa(i);
             liveVars[i]++;
-            if(n.psi[i] == undefined) n.psi[i] = [ssa(i)];
-            n.psi[i].push(psi);
+            if(n.psi[i] == undefined) {
+                var w = ssa(i);
+                n.psi[i] = [w];
+            }
+            n.psi[i].push(r);
         }
     }
 
@@ -711,8 +714,13 @@ console.log("}");*/
 //
 console.log("* SSA-IR");
 for(var i in blockList) {
-    console.log( blockList[i].name+':' )
-    console.log( blockList[i].psi );
+    console.log( blockList[i].name+':' );
+    // console.log(JSON.stringify(blockList[i].psi.length)
+    for(var j in blockList[i].psi) {
+        var psi = blockList[i].psi[j];
+        if(psi.length>0)
+            console.log( psi[0].v, '=', 'psi(', psi.map(x=>x.v).splice(1).join(', '), ')' );
+    }
     console.log( blockList[i].toStringIR().join("\n") );
 }
 
