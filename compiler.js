@@ -445,15 +445,16 @@ function printIR() {
         // console.log(JSON.stringify(blockList[i].psi.length)
         for(var j in blockList[i].psi) {
             var psi = blockList[i].psi[j];
-            if(psi.length>0)
-                console.log( psi[0].v, '=', 'psi(', psi.map(x=>x.v).splice(1).join(', '), ')' );
+            if(psi.length>0) {
+                console.log( psi[0].v, '=', 'psi(', psi.slice(1).map(x=>x.v+':'+x.src.name).join(', '), ')' );
+            }
         }
         console.log( blockList[i].toStringIR().join("\n") );
     }
 }
 
 // Naive SSA Transform
-function ssatransform(n, liveVars) {    
+function ssatransform(n, parent, liveVars) {    
     function ssa(i) {
         return { t:'VAR', v: i+'_'+liveVars[i] };
     }    
@@ -467,6 +468,7 @@ function ssatransform(n, liveVars) {
                 var w = ssa(i);
                 n.psi[i] = [w];
             }
+            r.src = parent;
             n.psi[i].push(r);
         }
     }
@@ -496,7 +498,7 @@ function ssatransform(n, liveVars) {
     }
 
     for(var i in n.children) {
-        ssatransform(n.children[i], liveVars); 
+        ssatransform(n.children[i], n, liveVars); 
     }
 }
 
@@ -639,22 +641,29 @@ function assignRegisters(n) {
         return;
     n.visited = 'assignRegisters';
 
-    var assembly = n.assembly;
-    for(var ii=0;ii<assembly.length;ii++) {
-
-        if(assembly[ii].r1 && assembly[ii].r1.t == 'VAR' && registers[assembly[ii].r1.v].t == 'REG') {
-            assembly[ii].r1 = registers[assembly[ii].r1.v];
+    var assembly = [];
+    for(var ii=0;ii<n.assembly.length;ii++) {
+        var ins = n.assembly[ii];
+        
+        if(ins.r1 && ins.r1.t == 'VAR' && registers[ins.r1.v].t == 'REG') {
+            ins.r1 = registers[ins.r1.v];
         }
 
-        if(assembly[ii].r2 && assembly[ii].r2.t == 'VAR' && registers[assembly[ii].r2.v].t == 'REG') {
-            assembly[ii].r2 = registers[assembly[ii].r2.v];
+        if(ins.r2 && ins.r2.t == 'VAR' && registers[ins.r2.v].t == 'REG') {
+            ins.r2 = registers[ins.r2.v];
         }
 
-        if(assembly[ii].w && assembly[ii].w.t == 'VAR' && registers[assembly[ii].w.v].t == 'REG') {
-            assembly[ii].w = registers[assembly[ii].w.v];
+        if(ins.w && ins.w.t == 'VAR' && registers[ins.w.v].t == 'REG') {
+            ins.w = registers[ins.w.v];
         }
 
+        // drop instruction that move register to iself
+        if(ins.w != undefined && ins.w.v == ins.r1.v && ins.r2 == undefined) {
+            continue;
+        }
+        assembly.push(ins);
     }
+    n.assembly = assembly;
     
     for(var i in n.children) {
         assignRegisters(n.children[i]);
@@ -683,23 +692,46 @@ printIR();
 // Print SSA-IR
 //
 console.log("* SSA-IR");
-ssatransform(block, {});
+ssatransform(block, undefined, {});
 printIR();
 
 //
 // Transform Psi function to IR
 //
+function psiToIRTransform(n) {
+    if(n.visited == 'psi2ir')
+        return;
+    n.visited = 'psi2ir';
+    for(var p in n.psi) {
+        var psi = n.psi[p];
+        var inputs = psi.slice(1);
+        for(var i in inputs) {
+            var ass = inputs[i].src.assembly;
+            if(ass[ass.length-1].op == 'JMP')
+                var lastInst = ass.pop();
+            inputs[i].src.emit({ op: '=', w: psi[0], r1: inputs[i] });
+            if(lastInst)
+                ass.push(lastInst);
+            delete lastInst;
+        }
+    }
+    delete n.psi;
+    for(var i in n.children) {
+        psiToIRTransform(n.children[i]);
+    }
+}
+
+console.log("* PSIRESOLVED-SSA-IR");
+psiToIRTransform(block);
+printIR();
 
 //
-// Assign registers
+// IR WITH REGISTERS
 //
-console.log("* REGISTERS");
+console.log("* IR WITH REGISTERS")
 buildGraph(block);
 var registers = g.assignReg();
 assignRegisters(block);
-// console.log(JSON.stringify(registers));
-// console.log("");
-console.log("* REGISTER-SSA-IR")
 printIR();
 
 //
