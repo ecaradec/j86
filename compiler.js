@@ -1,29 +1,18 @@
 var parser = require('./parser');
 var ssaTransform = require('./ssaTransform');
-var psiToIRTransform = require('./psiToIRTransform');
+var phiToIRTransform = require('./phiToIRTransform');
 var registersTransform = require('./registerTransform')
 
 //
 // Print IR
 //
-console.log("\n* IR");
+console.log("* IR");
 var program = [
     "FUNCTION main() {",
-    //"a = 1*2+3*4+5*6;",
-    //"IF(1*1) { a = 1; }",
-    //"b = 1;",
-    //"IF(b == 1) { a = 2; }",
-    // "a = 10;",
     "a = 1;",
-    "b = 2;",
-    "c = 3;",
-    //"d = a+b+c;",
-    //"a = d;",
-    //"c = b;",
-    //"a = 1;",
-    "WHILE( a == 10 ) { a = a + 1; }",
-    "IF(b == 1) { a = 2; }",
-    //"WHILE(c) { c = c - 1; }",
+    "WHILE(a == 10) { a = a + 1; }",
+    //"IF(a == 1) { a = 2; } ELSE { a = 1;  }",
+    //"b = a;",
     "}",
     ""
 ].join("\n");
@@ -35,14 +24,14 @@ parser.printIR();
 // Print SSA-IR
 //
 console.log("* SSA-IR");
-ssaTransform(block, undefined, {});
+ssaTransform(block, block, {}, {});
 parser.printIR();
 
 //
-// Print PSI RESOLVED SSA IR
+// Print PHI RESOLVED SSA IR
 //
 console.log("* PSIRESOLVED-SSA-IR");
-psiToIRTransform(block);
+phiToIRTransform(block);
 parser.printIR();
 
 //
@@ -56,7 +45,7 @@ parser.printIR();
 // Print assembly
 //
 // EAX is only used for temporaries
-console.log("\n* Assembly");
+console.log("* Assembly");
 for(var i in blockList) {
     console.log(blockList[i].name+':')
     blockList[i].printAssembly();

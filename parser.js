@@ -33,6 +33,8 @@ function eatToken(t) {
         currentToken = {'t': 'CALL', l: 4};
     else if(m=program.match(/^(IF)/))
         currentToken = {'t': 'IF', l: 2};
+    else if(m=program.match(/^(ELSE)/))
+        currentToken = {'t': 'ELSE', l: 4};
     else if(m=program.match(/^(\{)/))
         currentToken = {'t': '{', l: 1};
     else if(m=program.match(/^(\})/))
@@ -66,13 +68,14 @@ function Block(parents) {
     this.assembly = [];
     this.children = [];
     this.parents = [];
-    this.psi = [];
+    this.variables = {};
+    this.phis = {};
     this.name = 'block_'+blockId;
     blockId++;
 
     for(var i in parents) {
         parents[i].children.push(this);
-        this.parents.push(i);
+        this.parents.push(parents[i]);
     }
 
     this.addParent = (p) => {
@@ -81,6 +84,7 @@ function Block(parents) {
     }
 
     this.emit = (data) => {
+        // console.log(data);
         if(data==undefined) data={};
         this.assembly.push(data);
         return this.assembly.length - 1;
@@ -99,6 +103,7 @@ function Block(parents) {
         var text = [];
         for(var i=0;i<this.assembly.length;i++) {
             var ins = this.assembly[i];
+            //text.push(JSON.stringify(ins));
             if(ins.op == '*') {
                 text.push( ins.w.v+' := '+ins.r1.v+' * '+ins.r2.v );
             } else if(ins.op == '+') {
@@ -302,6 +307,7 @@ function parseIfStatement(b) {
     var prev = b;
 
     var trueBlock = new Block([b]);
+    var falseBlock = new Block([b]);
 
     ifStmt++;
     eatToken('IF');
@@ -316,14 +322,23 @@ function parseIfStatement(b) {
     eatToken('{');
     trueBlock = parseStatementList(trueBlock);
     eatToken('}');
+
+    if(getToken().t == 'ELSE') {
+        eatToken('ELSE');
+        eatToken('{');
+        falseBlock = parseStatementList(falseBlock);
+        eatToken('}');
+    }
     
     indent--;
 
-    var endBlock = new Block([trueBlock, prev], 'endIf');
+    var endBlock = new Block([trueBlock, falseBlock], 'endIf');
     var tmp = {t:'INTRINSIC', v: '$cond'};
     prev.emit({op: '==', w: tmp, r1: v1, r2:v2})
     prev.emit({op:'ifFalse', r1: tmp, label:endBlock.name});
 
+    trueBlock.emit({op: 'JMP', label: endBlock.name});
+    
     return endBlock;
 }
 
@@ -453,15 +468,14 @@ function Parser() {
     this.printIR = () => {
         for(var i in blockList) {
             console.log( blockList[i].name+':' );
-            // console.log(JSON.stringify(blockList[i].psi.length)
-            for(var j in blockList[i].psi) {
-                var psi = blockList[i].psi[j];
-                if(psi.length>0) {
-                    console.log( psi[0].v, ':=', 'psi(', psi.slice(1).map(x=>x.v+':'+x.src.name).join(', '), ')' );
-                }
+            for(var j in blockList[i].phis) {
+                var phi = blockList[i].phis[j];
+                console.log( phi.w, ':=', 'psi(', phi.r.join(', '), ')' );
             }
-            console.log( blockList[i].toStringIR().join("\n") );
+            if(blockList[i].assembly.length>0)
+                console.log( blockList[i].toStringIR().join("\n") );
         }
+        console.log("");
     }
 }
 
