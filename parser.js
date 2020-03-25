@@ -129,6 +129,8 @@ function Block(parents) {
                 text.push( 'ifFalse '+ins.r1.v+', '+ins.label );
             } else if(ins.op == 'return') {
                 text.push( 'return '+ins.r1.v );
+            } else if(ins.op == 'CALL') {
+                text.push( 'call '+ins.name );
             } else if(ins.op == 'functionstart') {
                 text.push( 'function '+ins.name );
                 // console.log('SUB ESP, 12');
@@ -202,7 +204,8 @@ function Block(parents) {
                 if(getPrevIns(this).op != 'return') // don't add ret if previous ins was return
                     console.log('RET');
             } else {
-                console.log(ins);
+                console.log(JSON.stringify(ins));
+                console.log(ins.op == 'CALL');
             }
         }
     }
@@ -468,8 +471,21 @@ function parseFunctionCall(b) {
 
     eatToken('CALL');
     var name = eatToken('NAME');
+    eatToken('(');
+    if(getToken().t != ')') {
+        parseSum();
+        var r1 = popVStack();
+        b.emit({op: 'PUSH', r1});
+        while(getToken().t == ',') {
+            eatToken(',');
+            parseSum();
+            var r1 = popVStack();
+            b.emit({op: 'PUSH', r1});
+        }
+    }
+    eatToken(')');
     eatToken(';');
-    b.emit({op:'CALL ', name: name.v});
+    b.emit({op:'CALL', name: name.v});
 
     indent--;
     return b;
