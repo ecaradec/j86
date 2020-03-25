@@ -197,6 +197,8 @@ function Block(parents) {
             } else if(ins.op == 'return') {
                 console.log('MOV EAX, '+ins.r1.v);
                 console.log('RET');
+            } else if(ins.op == 'CALL') {
+                console.log('CALL '+ins.name);
             } else if(ins.op == 'functionstart') {
                 console.log(ins.name+':');
                 // console.log('SUB ESP, 12');
@@ -417,6 +419,7 @@ function parseStatement(b) {
     indent--;
 }
 
+var functionDeclarations = {};
 function parseFunction(b) {
     logStack("parseFunction"); indent++;
 
@@ -442,6 +445,7 @@ function parseFunction(b) {
             i++;
         }
     }
+    functionDeclarations[name.v] = (i-1);
     eatToken(')')
     eatToken('{');
     b = parseStatementList(b);
@@ -472,16 +476,25 @@ function parseFunctionCall(b) {
     eatToken('CALL');
     var name = eatToken('NAME');
     eatToken('(');
+    if(functionDeclarations[name.v] === undefined) {
+        throw 'Function '+name.v+' doesnt exists';
+    }
+    var argumentsCount = 0;
     if(getToken().t != ')') {
         parseSum();
         var r1 = popVStack();
         b.emit({op: 'PUSH', r1});
+        argumentsCount++;
         while(getToken().t == ',') {
             eatToken(',');
             parseSum();
             var r1 = popVStack();
             b.emit({op: 'PUSH', r1});
+            argumentsCount++;
         }
+    }
+    if(functionDeclarations[name.v] !== argumentsCount) {
+        throw 'Function call "'+name.v+'" doesnt match declared arguments';
     }
     eatToken(')');
     eatToken(';');
