@@ -8,9 +8,9 @@ var registersTransform = require('./registerTransform')
 //
 console.log("* IR");
 var program = [
-    "FUNCTION test() {",
-    "a = 1;",
-    "b = 1;",
+    "FUNCTION test(a, b) {",
+    "d = a;",
+    "c = b;",
     "RETURN b;",
     "}",
     "FUNCTION main() {",

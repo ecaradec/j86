@@ -13,7 +13,8 @@ function getVariable(n, v) {
 
     // we don't know variable and there is no other node => fail
     if(n.parents.length == 0)
-        return v; //throw 'Cant find variable '+v.v;
+        //return v;
+        throw 'Cant find variable '+v.v;
     
     // we have only one parent, don't add phi, ask parent
     if(n.parents.length == 1)

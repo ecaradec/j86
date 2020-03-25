@@ -47,7 +47,8 @@ function eatToken(t) {
         currentToken = {'t': ')', l: 1};
     else if(m=program.match(/^(\;)/))
         currentToken = {'t': ';', l: 1};
-    
+    else if(m=program.match(/^(,)/))
+        currentToken = {'t': ',', l: 1}; 
     else if(m=program.match(/^([a-z]+)/))
         currentToken = {'t': 'NAME', v: m[1], l: m[1].length};
 
@@ -425,6 +426,19 @@ function parseFunction(b) {
     b.emit({op:'functionstart', name:functionStartLabel});
     
     eatToken('(');
+    b.variables=[];
+    var i = 1;
+    if(getToken().t == 'NAME') {
+        var n = eatToken('NAME');
+        b.variables[n.v] = {t: 'STACKVAR', v: '[ESP-'+(2*i)+']'};
+        i++;
+        while(getToken().t == ',') {
+            eatToken(',');
+            var n = eatToken('NAME');
+            b.variables[n.v] = {t: 'STACKVAR', v: '[ESP-'+(2*i)+']'};
+            i++;
+        }
+    }
     eatToken(')')
     eatToken('{');
     b = parseStatementList(b);
