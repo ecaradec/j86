@@ -9,10 +9,15 @@ var registersTransform = require('./registerTransform')
 console.log("* IR");
 var program = [
     "FUNCTION main() {",
-    "a = 1;",
+    "b = 1;",
+    //"a = 1;",
     "WHILE(a == 10) { a = a + 1; }",
     //"IF(a == 1) { a = 2; } ELSE { a = 1;  }",
-    //"b = a;",
+    "IF(a == 1) { a = 2; }",
+    "WHILE(a == 10) { a = a + 1; }",
+    //"IF(a == 1) { a = 2; } ELSE { a = 1;  }",
+    "IF(a == 1) { a = 2; }",
+    "a = b;",
     "}",
     ""
 ].join("\n");

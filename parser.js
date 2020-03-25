@@ -414,7 +414,7 @@ function parseFunction(b) {
     if(vstack.length != 0) throw "Expected vstack to be empty";
 
     //emit({op:'RET'});
-    b.emit({op:'functionend', name:functionStartLabel});
+    b.emit({op:'functionend', name:functionStartLabel, arguments});
 
     indent--;
 

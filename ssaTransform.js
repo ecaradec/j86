@@ -1,77 +1,5 @@
 
 var writeIndex = {};
-// -> n05
-var n0 = {
-    name: 'n0',
-    phis: {},
-    variables: {},
-    assembly: [
-        {w: {t:'VAR', v:'a'}, r1:{t:'DIGIT', v:1}},
-    ],
-    parents: [],
-    children: []
-};
-
-// n05 -> n1
-// n05 -> n2
-var n05 = {
-    name: 'n05',
-    phis: {},
-    variables: {},
-    assembly: [
-        {w: {t:'VAR', v:'b'}, r1:{t:'VAR', v:'a'}, r2:{t:'VAR', v:'a'}},
-    ],
-    parents: [],
-    children: []
-};
-
-// n1 -> n
-var n1 = {
-    name: 'n1',
-    phis: {},
-    variables: {},
-    assembly: [
-        {w: {t:'VAR', v:'a'}, r1:{t:'DIGIT', v:1}},
-    ],
-    parents: [],
-    children: []
-};
-
-// n2 -> n
-var n2 = {
-    name: 'n2',
-    phis: {},
-    variables: {},
-    assembly: [
-        {w: {t:'VAR', v:'a'}, r1:{t:'DIGIT', v:2}},
-    ],
-    parents: [],
-    children: []
-};
-
-var n = {
-    name: 'n',
-    phis: {},
-    variables: {},
-    assembly: [
-        {w: {t:'VAR', v:'b'}, r1:{t:'VAR', v:'a'}},
-        {w: {t:'VAR', v:'a'}, r1:{t:'DIGIT', v:'1'}},
-    ],
-    parents: [],
-    children: []
-};
-
-function addChild(p, c) {
-    p.children.push(c);
-    c.parents.push(p);
-}
-
-addChild(n0, n05); // root
-    addChild(n05, n1); // if
-    addChild(n05, n2);
-    addChild(n1, n);
-    addChild(n2, n);
-addChild(n, n05); // loop
 
 function getVariable(n, v) {
     // was the variable found in the block
@@ -96,6 +24,16 @@ function getVariable(n, v) {
     if(n.phis[v.v] == undefined) {
         var x = addVariable(n, v);
         n.phis[v.v] = {w: x.v, r:[]};
+    }
+
+    // If previous block is solved, query result
+    // This ensure, we are not creating phi locally without propagating it 
+    for(var i in n.parents) {
+        var x = null;
+        if(n.parents[i].done) {
+            x = getVariable(n.parents[i], v).v;
+        }
+        n.phis[v.v].r[i] = x;
     }
 
     // return the variable of the phi function
@@ -146,7 +84,8 @@ module.exports = function(n) {
     bfs(n, function(n) {
         for(var j in n.phis) {
             for(var k in n.parents) {
-                n.phis[j].r[k] = getVariable(n.parents[k], {t: 'VAR', v:j}).v;
+                if(n.phis[j].r[k] == null)
+                    n.phis[j].r[k] = getVariable(n.parents[k], {t: 'VAR', v:j}).v;
             }
         }
     });

@@ -18,11 +18,12 @@ function psiToIRTransform(n) {
             var lastJump = undefined;
             var lastCond = undefined;
             
-            if(ass[ass.length-1].op == 'JMP' || ass[ass.length-1].op == 'ifFalse' || ass[ass.length-1].op == 'ifTrue') {
-                lastJump = ass.pop();
-                if(ass[ass.length-1].w.v == '$cond')
-                    lastCond = ass.pop();
-            }
+            if(ass.length>1)
+                if(ass[ass.length-1].op == 'JMP' || ass[ass.length-1].op == 'ifFalse' || ass[ass.length-1].op == 'ifTrue') {
+                    lastJump = ass.pop();
+                    if(ass.length>1 && ass[ass.length-1].w.v == '$cond')
+                        lastCond = ass.pop();
+                }
             
             n.parents[i].emit({ op: '=', w: {t:'VAR', v:phi.w}, r1: {t:'VAR', v:phi.r[i]} });
             if(lastCond) {
