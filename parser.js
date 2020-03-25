@@ -31,6 +31,8 @@ function eatToken(t) {
         currentToken = {'t': 'FUNCTION', l: 8};
     else if(m=program.match(/^(CALL)/))
         currentToken = {'t': 'CALL', l: 4};
+    else if(m=program.match(/^(RETURN)/))
+        currentToken = {'t': 'RETURN', l: 6};
     else if(m=program.match(/^(IF)/))
         currentToken = {'t': 'IF', l: 2};
     else if(m=program.match(/^(ELSE)/))
@@ -124,6 +126,8 @@ function Block(parents) {
                 text.push( 'ifTrue '+ins.r1.v+', '+ins.label );
             } else if(ins.op == 'ifFalse') {
                 text.push( 'ifFalse '+ins.r1.v+', '+ins.label );
+            } else if(ins.op == 'return') {
+                text.push( 'return '+ins.r1.v );
             } else if(ins.op == 'functionstart') {
                 text.push( 'function '+ins.name );
                 // console.log('SUB ESP, 12');
@@ -139,6 +143,16 @@ function Block(parents) {
     this.printAssembly = () => {        
         //console.log("# "+this.name, this.children.map( (x) => x.name ) );
 
+        function getLastIns(n) {
+            if(n.assembly.length > 0)
+                return n.assembly[n.assembly.length-1];
+            return getLastIns(n.parents[0]);
+        }
+        function getPrevIns(n) {
+            if(n.assembly.length > 1)
+                return n.assembly[i-1];
+            return getLastIns(n.parents[0]); // should really check on all path, but it's enough for now
+        }
         for(var i=0;i<this.assembly.length;i++) {
             var ins = this.assembly[i];
             if(ins.op == '*') {
@@ -177,11 +191,15 @@ function Block(parents) {
                 console.log('POP '+ins.w.v);
             } else if(ins.op == 'JMP') {
                 console.log('JMP '+ins.label);
+            } else if(ins.op == 'return') {
+                console.log('MOV EAX, '+ins.r1.v);
+                console.log('RET');
             } else if(ins.op == 'functionstart') {
                 console.log(ins.name+':');
                 // console.log('SUB ESP, 12');
             } else if(ins.op == 'functionend') {
-                console.log('RET');
+                if(getPrevIns(this).op != 'return') // don't add ret if previous ins was return
+                    console.log('RET');
             } else {
                 console.log(ins);
             }
@@ -189,8 +207,6 @@ function Block(parents) {
     }
 
 }
-
-var block = new Block([]);
 
 function comment(code) {
     if(commentStr == '')
@@ -387,6 +403,10 @@ function parseStatement(b) {
         return parseFunction(b);
     } else if(getToken().t == 'CALL') {
         return parseFunctionCall(b);
+    } else if(getToken().t == 'RETURN') {
+        var rBlock = new Block([b]);
+        parseReturn(b);
+        return rBlock;
     } else
         throw 'Expected IF/WHILE/NAME/FUNCTION or CALL but got ' + getToken().t;
 
@@ -418,7 +438,15 @@ function parseFunction(b) {
 
     indent--;
 
-    return new Block([b]);
+    return b;
+}
+
+function parseReturn(b) {
+    eatToken('RETURN');
+    var n = eatToken('NAME');
+    eatToken(';');
+    b.emit({op: 'return', r1:{t: 'VAR', v: n.v}});
+    return b;
 }
 
 function parseFunctionCall(b) {
@@ -436,7 +464,11 @@ function parseFunctionCall(b) {
 function parseStatementList(b) {
     logStack("parseStatementList"); indent++;
 
-    while(getToken().t == 'NAME' || getToken().t == 'IF' || getToken().t == 'WHILE' || getToken().t == 'CALL') {
+    while(getToken().t == 'NAME' ||
+          getToken().t == 'IF' ||
+          getToken().t == 'WHILE' ||
+          getToken().t == 'CALL' ||
+          getToken().t == 'RETURN') {
         b = parseStatement(b);
     }
 
@@ -444,25 +476,26 @@ function parseStatementList(b) {
     return b;
 }
 
-function parseProgram(b) {
+function parseProgram() {
     logStack("parseProgram"); indent++;
+    var start = new Block([]);
 
     while(getToken().t == 'FUNCTION') {
-        b = parseFunction(b);
+        var fBlock = new Block([start]);
+        parseFunction(fBlock);
     }
 
     indent--;
 
-    return b;
+    return start;
 }
 
 var program = '';
-
 function Parser() {
     this.build = (p) => {
         program = p;
         eatToken('START');
-        parseProgram(block);
+        parseProgram();
         return blockList;
     }
     this.printIR = () => {

@@ -4,7 +4,7 @@ var writeIndex = {};
 function getVariable(n, v) {
     // was the variable found in the block
     if(n.variables[v.v]) {
-        return {t: 'VAR', v: n.variables[v.v]};
+        return n.variables[v.v];
     }
     // was the variable found in phis
     if(n.phis[v.v]) {
@@ -42,8 +42,8 @@ function getVariable(n, v) {
 
 function addVariable(n, v) {
     writeIndex[v.v] = (writeIndex[v.v]+1 || 0)
-    n.variables[v.v] = v.v+'_'+writeIndex[v.v];
-    return {t: 'VAR', v:n.variables[v.v]};
+    n.variables[v.v] = {t:'VAR', v: v.v+'_'+writeIndex[v.v]};
+    return n.variables[v.v];
 }
 
 function transform(n) {
