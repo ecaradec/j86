@@ -158,6 +158,7 @@ function Block(parents) {
         }
         for(var i=0;i<this.assembly.length;i++) {
             var ins = this.assembly[i];
+
             if(ins.op == '*') {
                 console.log('MOV EAX, '+ins.r1.v);
                 console.log('MUL EAX, '+ins.r2.v);
@@ -169,11 +170,12 @@ function Block(parents) {
             } else if(ins.op == '-') {
                 console.log('MOV EAX, '+ins.r1.v);
                 console.log('SUB EAX, '+ins.r2.v);
-                console.log('MOV '+ins.w.v+', EAX');                
+                console.log('MOV '+ins.w.v+', EAX');
             } else if(ins.op == '=') {
                 if(ins.w.v != ins.r1.v) {
                     // should really be done on IR
-                    if(ins.w.t == 'VAR' && ins.r1.t == 'VAR') {
+                    if((ins.w.t == 'VAR' || ins.w.t == 'STACKVAR') && 
+                       (ins.r1.t == 'VAR' || ins.r1.t == 'STACKVAR') ) {
                         console.log('MOV EAX, '+ins.r1.v);
                         console.log('MOV '+ins.w.v+', EAX');
                     } else {
@@ -194,17 +196,22 @@ function Block(parents) {
                 console.log('POP '+ins.w.v);
             } else if(ins.op == 'JMP') {
                 console.log('JMP '+ins.label);
-            } else if(ins.op == 'return') {
-                console.log('MOV EAX, '+ins.r1.v);
-                console.log('RET');
             } else if(ins.op == 'CALL') {
                 console.log('CALL '+ins.name);
             } else if(ins.op == 'functionstart') {
                 console.log(ins.name+':');
-                // console.log('SUB ESP, 12');
+                console.log('PUSH EBP');
+                console.log('MOV ESP, EBP');
+                console.log('SUB ESP, '+(4*ins.varCount));
             } else if(ins.op == 'functionend') {
-                if(getPrevIns(this).op != 'return') // don't add ret if previous ins was return
+                if(getPrevIns(this).op != 'return') { // don't add ret if previous ins was return
+                    console.log('LEAVE');
                     console.log('RET');
+                }
+            } else if(ins.op == 'return') {
+                console.log('MOV EAX, '+ins.r1.v);
+                console.log('LEAVE');
+                console.log('RET');
             } else {
                 console.log(JSON.stringify(ins));
                 console.log(ins.op == 'CALL');
@@ -429,24 +436,27 @@ function parseFunction(b) {
     var name = eatToken('NAME');    
 
     var functionStartLabel = name.v;
-    b.emit({op:'functionstart', name:functionStartLabel});
+    var f = {op:'functionstart', name:functionStartLabel};
+    b.func = f;
+    b.emit(f);
     
     eatToken('(');
     b.variables=[];
-    var i = 1;
+    var i = 0;
     if(getToken().t == 'NAME') {
         var n = eatToken('NAME');
-        b.variables[n.v] = {t: 'STACKVAR', v: '[EBP+'+(2*i)+']'};
+        b.variables[n.v] = {t: 'STACKVAR', v: '[EBP+'+(4*i+8)+']', index: i};
         i++;
         while(getToken().t == ',') {
             eatToken(',');
             var n = eatToken('NAME');
-            b.variables[n.v] = {t: 'STACKVAR', v: '[EBP+'+(2*i)+']'};
+            b.variables[n.v] = {t: 'STACKVAR', v: '[EBP+'+(4*i+8)+']', index: i};
             i++;
         }
     }
-    functionDeclarations[name.v] = (i-1);
-    eatToken(')')
+    b.func.argCount = i;
+    functionDeclarations[name.v] = i;
+    eatToken(')');
     eatToken('{');
     b = parseStatementList(b);
     eatToken('}');

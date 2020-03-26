@@ -10,7 +10,7 @@ console.log("* IR");
 var program = [
     "FUNCTION test(a,b) {",
     "a = a;",
-    "b = 1;",
+    "b = b;",
     "c = 1;",
     "d = 1;",
     "e = 1;",
@@ -59,8 +59,6 @@ parser.printIR();
 console.log("* IR WITH REGISTERS")
 registersTransform(block);
 parser.printIR();
-
-
 
 //
 // Print assembly

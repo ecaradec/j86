@@ -63,7 +63,7 @@ let Graph = (function() {
             if(k<3)
                 availReg['r'+k] = {t: 'REG', k: 'r'+k, v: 'r'+k};
             else
-                availReg['r'+k] = {t: 'VAR', k: 'r'+k, v: '[EBP-'+((k-3)*2)+']'};
+                availReg['s'+k] = {t: 'VAR', k: 's'+k, v: '[EBP-'+(4*(k-3)+4)+']', index: (k-3)};
             k++;
         }
         //var availReg = {'EBX':true, 'ECX':true, 'S0': true, 'S1': true};
@@ -153,10 +153,21 @@ function buildGraph(n) {
     return activeNodes;
 }
 
+function max(a,b) {
+    return a>b ? a : b;
+}
+
 function replaceVars(n, registers) {
     if(n.visited == 'replaceVars')
         return;
     n.visited = 'replaceVars';
+
+    if(n.func) {
+        for(var i in registers) {
+            if(registers[i].t == 'VAR')
+                n.func.varCount = max(n.func.varCount, registers[i].index+1)
+        }
+    }
 
     var assembly = [];
     for(var ii=0;ii<n.assembly.length;ii++) {
