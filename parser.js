@@ -436,12 +436,12 @@ function parseFunction(b) {
     var i = 1;
     if(getToken().t == 'NAME') {
         var n = eatToken('NAME');
-        b.variables[n.v] = {t: 'STACKVAR', v: '[ESP-'+(2*i)+']'};
+        b.variables[n.v] = {t: 'STACKVAR', v: '[EBP+'+(2*i)+']'};
         i++;
         while(getToken().t == ',') {
             eatToken(',');
             var n = eatToken('NAME');
-            b.variables[n.v] = {t: 'STACKVAR', v: '[ESP-'+(2*i)+']'};
+            b.variables[n.v] = {t: 'STACKVAR', v: '[EBP+'+(2*i)+']'};
             i++;
         }
     }

@@ -9,7 +9,7 @@ var registersTransform = require('./registerTransform')
 console.log("* IR");
 var program = [
     "FUNCTION test(a,b) {",
-    "a = 1;",
+    "a = a;",
     "b = 1;",
     "c = 1;",
     "d = 1;",
@@ -59,6 +59,8 @@ parser.printIR();
 console.log("* IR WITH REGISTERS")
 registersTransform(block);
 parser.printIR();
+
+
 
 //
 // Print assembly
