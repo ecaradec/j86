@@ -54,22 +54,31 @@ let Graph = (function() {
         this.addNode(dropped.id);
         // EAX is always used as a temporary
         // var availReg = {'ebx':true, 'ecx':true, 'edx':true};
-        var availReg = {'EBX':true,'ECX':true};
+        
+        // creates as many registers as there is variables, we'll try to use as few as possible
+        // stack variables can be reused just the same as register
+        var availReg = {};
+        var k = 1;
+        for(var i in nodes) {
+            if(k<3)
+                availReg['r'+k] = {t: 'REG', k: 'r'+k, v: 'r'+k};
+            else
+                availReg['r'+k] = {t: 'VAR', k: 'r'+k, v: '[ESP-'+((k-2)*2)+']'};
+            k++;
+        }
+        //var availReg = {'EBX':true, 'ECX':true, 'S0': true, 'S1': true};
         for(var i in dropped.connections) {
             var n = dropped.connections[i];
-            delete availReg[nodes[n].reg];
+            delete availReg[nodes[n].reg.k];
             this.addEdge(dropped.id, n);
         }
 
         // assign register if one left, or spill variable
-        nodes[dropped.id].reg = Object.keys(availReg)[0] || 'spill';
+        nodes[dropped.id].reg = availReg[Object.keys(availReg)[0]];
 
         var registers={};
         for(var i in nodes) {
-            if(nodes[i].reg == 'spill')
-                registers[i] = {t: 'SPILL', v: 'spill'+(this.spill++)};
-            else
-                registers[i] = {t: 'REG', v: nodes[i].reg};
+            registers[i] = nodes[i].reg;
         }
         return registers;
     }
@@ -153,15 +162,15 @@ function replaceVars(n, registers) {
     for(var ii=0;ii<n.assembly.length;ii++) {
         var ins = n.assembly[ii];
         
-        if(ins.r1 && ins.r1.t == 'VAR' && registers[ins.r1.v].t == 'REG') {
+        if(ins.r1 && ins.r1.t == 'VAR') {
             ins.r1 = registers[ins.r1.v];
         }
 
-        if(ins.r2 && ins.r2.t == 'VAR' && registers[ins.r2.v].t == 'REG') {
+        if(ins.r2 && ins.r2.t == 'VAR') {
             ins.r2 = registers[ins.r2.v];
         }
 
-        if(ins.w && ins.w.t == 'VAR' && registers[ins.w.v].t == 'REG') {
+        if(ins.w && ins.w.t == 'VAR') {
             ins.w = registers[ins.w.v];
         }
 
