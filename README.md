@@ -5,6 +5,7 @@
 - [x] spill variable handling (variable not replaced by registers are spill variable possibly ) ?
 - [x] recycle spill variable
 - [x] allows referencing a parameter
+- [ ] let functions returns arguments
 - [ ] save and restore registers in callee
 - [ ] allocate space on stack for local variables
 - [ ] support of string

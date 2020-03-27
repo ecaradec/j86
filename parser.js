@@ -214,7 +214,7 @@ function Block(parents) {
                         console.log('POP', registers[r])
                     }
                     console.log('LEAVE');
-                    console.log('RET');
+                    console.log('RET', this.func.argCount*4);
                 }
             } else if(ins.op == 'return') {
                 console.log('MOV EAX, '+ins.r1.v);
@@ -223,7 +223,7 @@ function Block(parents) {
                     console.log('POP', registers[r])
                 }
                 console.log('LEAVE');
-                console.log('RET');
+                console.log('RET', this.func.argCount*4);
             } else {
                 console.log(JSON.stringify(ins));
                 console.log(ins.op == 'CALL');
