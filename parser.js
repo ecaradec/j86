@@ -203,13 +203,25 @@ function Block(parents) {
                 console.log('PUSH EBP');
                 console.log('MOV ESP, EBP');
                 console.log('SUB ESP, '+(4*ins.varCount));
+                var registers = Object.keys(ins.usedRegisters);    
+                for(var i in registers ) {
+                    console.log('PUSH', registers[i])
+                }
             } else if(ins.op == 'functionend') {
                 if(getPrevIns(this).op != 'return') { // don't add ret if previous ins was return
+                    var registers = Object.keys(this.func.usedRegisters).reverse();    
+                    for(var r in registers ) {
+                        console.log('POP', registers[r])
+                    }
                     console.log('LEAVE');
                     console.log('RET');
                 }
             } else if(ins.op == 'return') {
                 console.log('MOV EAX, '+ins.r1.v);
+                var registers = Object.keys(this.func.usedRegisters).reverse();    
+                for(var r in registers ) {
+                    console.log('POP', registers[r])
+                }
                 console.log('LEAVE');
                 console.log('RET');
             } else {
@@ -436,7 +448,7 @@ function parseFunction(b) {
     var name = eatToken('NAME');    
 
     var functionStartLabel = name.v;
-    var f = {op:'functionstart', name:functionStartLabel};
+    var f = {op:'functionstart', name:functionStartLabel, usedRegisters:{}};
     b.func = f;
     b.emit(f);
     

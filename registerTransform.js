@@ -166,6 +166,8 @@ function replaceVars(n, registers) {
         for(var i in registers) {
             if(registers[i].t == 'VAR')
                 n.func.varCount = max(n.func.varCount, registers[i].index+1)
+            if(registers[i].t == 'REG')
+                n.func.usedRegisters[registers[i].v] = true;
         }
     }
 
