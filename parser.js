@@ -380,7 +380,7 @@ function parseIfStatement(b) {
     var endBlock = new Block([trueBlock, falseBlock], 'endIf');
     var tmp = {t:'INTRINSIC', v: '$cond'};
     prev.emit({op: '==', w: tmp, r1: v1, r2:v2})
-    prev.emit({op:'ifFalse', r1: tmp, label:endBlock.name});
+    prev.emit({op:'ifFalse', r1: tmp, label:falseBlock.name});
 
     trueBlock.emit({op: 'JMP', label: endBlock.name});
     
