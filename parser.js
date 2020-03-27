@@ -76,6 +76,9 @@ function Block(parents) {
     this.name = 'block_'+blockId;
     blockId++;
 
+    if(parents.length>0)
+        this.func = parents[0].func;
+
     for(var i in parents) {
         parents[i].children.push(this);
         this.parents.push(parents[i]);
@@ -84,6 +87,7 @@ function Block(parents) {
     this.addParent = (p) => {
         this.parents.push(p);
         p.children.push(this);
+        this.func = p.func;
     }
 
     this.emit = (data) => {
