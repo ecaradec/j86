@@ -53,15 +53,19 @@ let Graph = (function() {
         // build back graph and delete used registers
         this.addNode(dropped.id);
         // EAX is always used as a temporary
-        // var availReg = {'ebx':true, 'ecx':true, 'edx':true};
+        var availReg = {
+            'ebx': {t: 'REG', k: 'ebx', v: 'ebx'}, 
+            'ecx': {t: 'REG', k: 'ecx', v: 'ecx'}, 
+            'edx': {t: 'REG', k: 'edx', v: 'edx'}, 
+        };
         
         // creates as many registers as there is variables, we'll try to use as few as possible
         // stack variables can be reused just the same as register
-        var availReg = {};
+        // var availReg = {};
         var k = 1;
         for(var i in nodes) {
             if(k<3)
-                availReg['r'+k] = {t: 'REG', k: 'r'+k, v: 'r'+k};
+                ; // availReg['r'+k] = {t: 'REG', k: 'r'+k, v: 'r'+k};
             else
                 availReg['s'+k] = {t: 'VAR', k: 's'+k, v: '[EBP-'+(4*(k-3)+4)+']', index: (k-3)};
             k++;
