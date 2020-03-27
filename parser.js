@@ -493,9 +493,10 @@ function parseFunction(b) {
 
 function parseReturn(b) {
     eatToken('RETURN');
-    var n = eatToken('NAME');
+    b = parseSum(b);
+    var r1 = popVStack();
     eatToken(';');
-    b.emit({op: 'return', r1:{t: 'VAR', v: n.v}});
+    b.emit({op: 'return', r1});
     return b;
 }
 
