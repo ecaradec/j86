@@ -442,7 +442,10 @@ function parseStatement(b) {
     indent--;
 }
 
-var functionDeclarations = {};
+var functionDeclarations = {
+    'ok': 0,
+    'nok': 0,
+};
 function parseFunction(b) {
     logStack("parseFunction"); indent++;
 
