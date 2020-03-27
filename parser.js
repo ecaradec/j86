@@ -205,11 +205,11 @@ function Block(parents) {
             } else if(ins.op == 'functionstart') {
                 console.log(ins.name+':');
                 console.log('PUSH EBP');
-                console.log('MOV ESP, EBP');
+                console.log('MOV EBP, ESP');
                 console.log('SUB ESP, '+(4*ins.varCount));
                 var registers = Object.keys(ins.usedRegisters);    
-                for(var i in registers ) {
-                    console.log('PUSH', registers[i])
+                for(var j in registers ) {
+                    console.log('PUSH', registers[j])
                 }
             } else if(ins.op == 'functionend') {
                 if(getPrevIns(this).op != 'return') { // don't add ret if previous ins was return
