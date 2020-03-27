@@ -455,7 +455,7 @@ function parseFunction(b) {
     var name = eatToken('NAME');    
 
     var functionStartLabel = name.v;
-    var f = {op:'functionstart', name:functionStartLabel, usedRegisters:{}};
+    var f = {op:'functionstart', name:functionStartLabel, varCount:0, usedRegisters:{}};
     b.func = f;
     b.emit(f);
     
