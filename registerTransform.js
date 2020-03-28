@@ -67,7 +67,7 @@ let Graph = (function() {
             if(k<3)
                 ; // availReg['r'+k] = {t: 'REG', k: 'r'+k, v: 'r'+k};
             else
-                availReg['s'+k] = {t: 'VAR', k: 's'+k, v: '[EBP-'+(4*(k-3)+4)+']', index: (k-3)};
+                availReg['s'+k] = {t: 'VAR', k: 's'+k, v: 'DWORD [EBP-'+(4*(k-3)+4)+']', index: (k-3)};
             k++;
         }
         //var availReg = {'EBX':true, 'ECX':true, 'S0': true, 'S1': true};
