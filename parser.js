@@ -333,10 +333,9 @@ function parseProduct(b) {
 }
 
 variables = [];
-function parseAssignment(b) {
+function parseAssignment(dst, b) {
     logStack("parseAssigment"); indent++;
 
-    var dst = eatToken('NAME');
     variables[dst.v] = true;
     eatToken('EQUAL');
     b = parseSum(b);
@@ -436,11 +435,15 @@ function parseStatement(b) {
     } else if(getToken().t == 'WHILE') {
         return parseWhileStatement(b);
     } else if(getToken().t == 'NAME') {
-        return parseAssignment(b);
+        var name = eatToken('NAME');
+        if(getToken().t == 'EQUAL')
+            return parseAssignment(name, b);
+        else if(getToken().t == '(')
+            return parseFunctionCall(name, b);
+        else
+            throw 'Expected = or ( but got ' + getToken().t;
     } else if(getToken().t == 'FUNCTION') {
         return parseFunction(b);
-    } else if(getToken().t == 'CALL') {
-        return parseFunctionCall(b);
     } else if(getToken().t == 'RETURN') {
         var rBlock = new Block([b]);
         parseReturn(b);
@@ -509,11 +512,9 @@ function parseReturn(b) {
     return b;
 }
 
-function parseFunctionCall(b) {
+function parseFunctionCall(name, b) {
     logStack("parseFunctionCall"); indent++;
 
-    eatToken('CALL');
-    var name = eatToken('NAME');
     eatToken('(');
     if(functionDeclarations[name.v] === undefined) {
         throw 'Function '+name.v+' doesnt exists';
