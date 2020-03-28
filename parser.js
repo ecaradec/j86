@@ -409,8 +409,7 @@ function parseWhileStatement(b) {
     whileStmt++;        
     var startBlock = b;
     var condBlock = new Block([startBlock]);
-    var whileBlock = new Block([condBlock]);
-    condBlock.addParent(whileBlock);
+    condBlock.addParent(condBlock);
     var endBlock = new Block([condBlock]);
 
     eatToken('WHILE');
@@ -420,9 +419,9 @@ function parseWhileStatement(b) {
     condBlock.emit({op:'ifFalse', r1: tmp, label:endBlock.name}); // exit if condition is false
     eatToken(')');
     eatToken('{');
-    whileBlock = parseStatementList(whileBlock);
+    condBlock = parseStatementList(condBlock);
     eatToken('}');
-    whileBlock.emit({op:'jmp', label:condBlock.name});
+    condBlock.emit({op:'jmp', label:condBlock.name});
 
     indent--;
 
