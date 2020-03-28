@@ -3,6 +3,7 @@ var ssaTransform = require('./ssaTransform');
 var phiToIRTransform = require('./phiToIRTransform');
 var registersTransform = require('./registerTransform')
 var printIR = require('./printIR')
+var printAssembly = require('./printAssembly')
 
 //
 // Print IR
@@ -37,31 +38,31 @@ var program = [
     ""
 ].join("\n");
 var blockList = parser.build(program);
-var block = blockList[0];
-printIR(block);
+var program = blockList[0];
+printIR(program);
 
 //
 // Print SSA-IR
 //
 console.log("* SSA-IR");
-ssaTransform(block, block, {}, {});
-printIR(block);
+ssaTransform(program, program, {}, {});
+printIR(program);
 console.log("");
 
 //
 // Print PHI RESOLVED SSA IR
 //
 console.log("* PSIRESOLVED-SSA-IR");
-phiToIRTransform(block);
-printIR(block);
+phiToIRTransform(program);
+printIR(program);
 console.log("");
 
 //
 // IR WITH REGISTERS
 //
 console.log("* IR WITH REGISTERS")
-registersTransform(block);
-printIR(block);
+registersTransform(program);
+printIR(program);
 console.log("");
 
 //
@@ -71,10 +72,7 @@ console.log("");
 console.log("* Assembly");
 console.log("section .text");
 console.log("    global _start");
-for(var i in blockList) {
-    console.log(blockList[i].name+':')
-    blockList[i].printAssembly();
-}
+printAssembly(program);
 console.log("_start:");
 console.log("    call main");
 console.log("    mov eax, 1");
