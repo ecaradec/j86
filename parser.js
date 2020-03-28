@@ -76,10 +76,11 @@ function Block(parents) {
     this.variables = {};
     this.phis = {};
     this.name = 'block_'+blockId;
-    blockId++;
 
-    if(parents.length>0)
+    if(parents.length>0) {
         this.func = parents[0].func;
+    }
+    blockId++;
 
     for(var i in parents) {
         parents[i].children.push(this);
@@ -107,11 +108,6 @@ function Block(parents) {
             console.log(' '+JSON.stringify(ins));
         }
     }
-}
-
-function comment(code) {
-    if(commentStr == '')
-        commentStr = code;
 }
 
 var vstack = [];
@@ -146,7 +142,6 @@ var tmp=0;
 function getTmpVar() {
     return "tmp"+(tmp++);
 }
-
 
 function parseSum(b) {
     parseProduct(b);
@@ -197,6 +192,7 @@ function parseAssignment(dst, b) {
 
     return b;
 }
+
 function parseCondStatement(b) {
     parseSum(b);
     if(getToken().t == '==') {
@@ -344,8 +340,6 @@ function parseReturn(b) {
 }
 
 function parseFunctionCall(name, b) {
-    logStack("parseFunctionCall"); indent++;
-
     eatToken('(');
     if(functionDeclarations[name.v] === undefined) {
         throw 'Function '+name.v+' doesnt exists';
@@ -371,22 +365,14 @@ function parseFunctionCall(name, b) {
     eatToken(';');
     b.emit({op:'call', name: name.v});
 
-    indent--;
     return b;
 }
 
 function parseStatementList(b) {
-    logStack("parseStatementList"); indent++;
-
-    while(getToken().t == 'NAME' ||
-          getToken().t == 'IF' ||
-          getToken().t == 'WHILE' ||
-          getToken().t == 'CALL' ||
-          getToken().t == 'RETURN') {
+    while(getToken().t != '}') {
         b = parseStatement(b);
     }
 
-    indent--;
     return b;
 }
 
@@ -409,8 +395,7 @@ function Parser() {
     this.build = (p) => {
         program = p;
         eatToken('START');
-        parseProgram();
-        return blockList;
+        return parseProgram();
     }
 }
 

@@ -37,8 +37,7 @@ var program = [
     "}",
     ""
 ].join("\n");
-var blockList = parser.build(program);
-var program = blockList[0];
+var program = parser.build(program);
 printIR(program);
 
 //

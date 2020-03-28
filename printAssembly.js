@@ -1,6 +1,4 @@
 function printAssembly(b) {        
-    //console.log("# "+this.name, this.children.map( (x) => x.name ) );
-    //console.log(JSON.stringify(this.func));
     function getLastIns(n) {
         if(n.assembly.length > 0)
             return n.assembly[n.assembly.length-1];
@@ -9,7 +7,10 @@ function printAssembly(b) {
     function getPrevIns(n) {
         if(n.assembly.length > 1)
             return n.assembly[i-1];
-        return getLastIns(n.parents[0]); // should really check on all path, but it's enough for now
+        // should really check on all path, but it's enough for now
+        // as the function is only used to prevent double return.
+        // it can still happens if doing return on booth path of an if/else
+        return getLastIns(n.parents[0]);
     }
     function printIns() {
         arguments[0] = '    '+arguments[0]
