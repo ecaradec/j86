@@ -25,6 +25,8 @@ function eatToken(t) {
         currentToken = {'t': 'EQUAL', l: 1};
     else if(m=program.match(/^(==) +/))
         currentToken = {'t': '==', l: 2};
+    else if(m=program.match(/^(!=) +/))
+        currentToken = {'t': '!=', l: 2};
     else if(m=program.match(/^(WHILE)/))
         currentToken = {'t': 'WHILE', l: 5};
     else if(m=program.match(/^(FUNCTION)/))
@@ -349,8 +351,20 @@ function parseAssignment(b) {
 }
 function parseCondStatement(b) {
     parseSum(b);
-    eatToken('==');
+    if(getToken().t == '==') {
+        eatToken('==');
+        var op = '==';
+    } else if(getToken().t == '!=') {
+        eatToken('!=');
+        var op = '!=';
+    } else {
+        throw 'Expected token to be == or !=';
+    }
     parseSum(b);
+    var v2 = popVStack();
+    var v1 = popVStack();
+    var tmp = {t:'INTRINSIC', v: '$cond'};
+    b.emit({op, w: tmp, r1: v1, r2:v2})
 }
 
 var ifStmt=0;
@@ -358,17 +372,15 @@ function parseIfStatement(b) {
     logStack("parseIfStatement"); indent++;
     var prev = b;
 
-    var trueBlock = new Block([b]);
+    var trueBlock = b; //new Block([b]);
     var falseBlock = new Block([b]);
 
     ifStmt++;
     eatToken('IF');
     eatToken('(');
     b = parseCondStatement(b);
-
-    var v2 = popVStack();
-    var v1 = popVStack();
-
+    var tmp = {t:'INTRINSIC', v: '$cond'};
+    prev.emit({op:'ifFalse', r1: tmp, label:falseBlock.name});
 
     eatToken(')');
     eatToken('{');
@@ -385,11 +397,7 @@ function parseIfStatement(b) {
     indent--;
 
     var endBlock = new Block([trueBlock, falseBlock], 'endIf');
-    var tmp = {t:'INTRINSIC', v: '$cond'};
-    prev.emit({op: '==', w: tmp, r1: v1, r2:v2})
-    prev.emit({op:'ifFalse', r1: tmp, label:falseBlock.name});
-
-    trueBlock.emit({op: 'JMP', label: endBlock.name});
+    trueBlock.emit({op: 'jmp', label: endBlock.name});
     
     return endBlock;
 }
@@ -407,14 +415,9 @@ function parseWhileStatement(b) {
 
     eatToken('WHILE');
     eatToken('(');
-    b = parseCondStatement(b);
-
-    var v2 = popVStack();
-    var v1 = popVStack();
-
+    b = parseCondStatement(condBlock);
     var tmp = {t:'INTRINSIC', v: '$cond'};
-    condBlock.emit({op: '==', w: tmp, r1: v1, r2:v2})
-    condBlock.emit({op:'ifTrue', r1: tmp, label:endBlock.name})
+    condBlock.emit({op:'ifFalse', r1: tmp, label:endBlock.name}); // exit if condition is false
     eatToken(')');
     eatToken('{');
     whileBlock = parseStatementList(whileBlock);
