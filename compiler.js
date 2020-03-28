@@ -2,6 +2,7 @@ var parser = require('./parser');
 var ssaTransform = require('./ssaTransform');
 var phiToIRTransform = require('./phiToIRTransform');
 var registersTransform = require('./registerTransform')
+var printIR = require('./printIR')
 
 //
 // Print IR
@@ -37,28 +38,31 @@ var program = [
 ].join("\n");
 var blockList = parser.build(program);
 var block = blockList[0];
-parser.printIR();
+printIR(block);
 
 //
 // Print SSA-IR
 //
 console.log("* SSA-IR");
 ssaTransform(block, block, {}, {});
-parser.printIR();
+printIR(block);
+console.log("");
 
 //
 // Print PHI RESOLVED SSA IR
 //
 console.log("* PSIRESOLVED-SSA-IR");
 phiToIRTransform(block);
-parser.printIR();
+printIR(block);
+console.log("");
 
 //
 // IR WITH REGISTERS
 //
 console.log("* IR WITH REGISTERS")
 registersTransform(block);
-parser.printIR();
+printIR(block);
+console.log("");
 
 //
 // Print assembly

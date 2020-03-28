@@ -108,49 +108,6 @@ function Block(parents) {
         }
     }
 
-    this.toStringIR = () => {
-        var text = [];
-        for(var i=0;i<this.assembly.length;i++) {
-            var ins = this.assembly[i];
-            //text.push(JSON.stringify(ins));
-            if(ins.op == '*') {
-                text.push( ins.w.v+' := '+ins.r1.v+' * '+ins.r2.v );
-            } else if(ins.op == '+') {
-                text.push( ins.w.v+' := '+ins.r1.v+' + '+ins.r2.v );
-            } else if(ins.op == '-') {
-                text.push( ins.w.v+' := '+ins.r1.v+' - '+ins.r2.v );
-            } else if(ins.op == '=') {
-                text.push( ins.w.v+' := '+ins.r1.v );
-            } else if(ins.op == '==') {
-                text.push( ins.w.v+' := '+ins.r1.v+' == '+ins.r2.v );
-            } else if(ins.op == '!=') {
-                text.push( ins.w.v+' := '+ins.r1.v+' != '+ins.r2.v );
-            } else if(ins.op == 'PUSH') {
-                text.push( 'push '+ins.r1.v );
-            } else if(ins.op == 'POP') {
-                text.push( 'pop '+ins.w.v );
-            } else if(ins.op == 'jmp') {
-                text.push( 'jmp '+ins.label );
-            } else if(ins.op == 'ifTrue') {
-                text.push( 'ifTrue '+ins.r1.v+', '+ins.label );
-            } else if(ins.op == 'ifFalse') {
-                text.push( 'ifFalse '+ins.r1.v+', '+ins.label );
-            } else if(ins.op == 'return') {
-                text.push( 'return '+ins.r1.v );
-            } else if(ins.op == 'call') {
-                text.push( 'call '+ins.name );
-            } else if(ins.op == 'functionStart') {
-                text.push( 'function '+ins.name );
-                // console.log('SUB ESP, 12');
-            } else if(ins.op == 'functionEnd') {
-                text.push( 'functionEnd' );
-            } else {
-                text.push( JSON.stringify(ins) );
-            }
-        }
-        return text;
-    }
-
     this.printAssembly = () => {        
         //console.log("# "+this.name, this.children.map( (x) => x.name ) );
 
@@ -214,7 +171,7 @@ function Block(parents) {
                 printIns('jmp '+ins.label);
             } else if(ins.op == 'call') {
                 printIns('call '+ins.name);
-            } else if(ins.op == 'functionstart') {
+            } else if(ins.op == 'functionStart') {
                 console.log(ins.name+':');
                 printIns('push ebp');
                 printIns('mov ebp, esp');
@@ -267,12 +224,9 @@ function logStack(n) {
     var leftPad = '';
     for(var i=0;i<indent;i++)
         leftPad+=' ';
-    // console.log(leftPad, n);
 }
 
 function parseTerm(b) {
-    logStack("parseTerm"); indent++;
-
     if(getToken().t == 'DIGIT') {
         var v = eatToken('DIGIT');
         pushVStack(v);
@@ -281,7 +235,6 @@ function parseTerm(b) {
         vstack.push({t: 'VAR', v: varname.v});
     }
 
-    indent--;
     return b;
 }
 
@@ -292,8 +245,6 @@ function getTmpVar() {
 
 
 function parseSum(b) {
-    logStack("parseSum");indent++;
-
     parseProduct(b);
     if( getToken().t == 'SUM' ) {
         var s = eatToken('SUM');
@@ -312,13 +263,10 @@ function parseSum(b) {
         pushVStack(dst);
     }
 
-    indent--;
     return b;
 }
 
 function parseProduct(b) {
-    logStack("parseProduct"); indent++;
-
     b = parseTerm(b);
     if( getToken().t == 'PRODUCT' ) {
         eatToken('PRODUCT');
@@ -330,14 +278,11 @@ function parseProduct(b) {
         b.emit({op:'*', w:dst, r1:op1, r2:op2});
         pushVStack(dst);
     }
-    indent--;
     return b;
 }
 
 variables = [];
 function parseAssignment(dst, b) {
-    logStack("parseAssigment"); indent++;
-
     variables[dst.v] = true;
     eatToken('EQUAL');
     b = parseSum(b);
@@ -345,8 +290,6 @@ function parseAssignment(dst, b) {
     
     b.emit({op: '=', w:{t:'VAR', v:dst.v}, r1:src});
     eatToken(';');
-
-    indent--;
 
     return b;
 }
@@ -368,12 +311,10 @@ function parseCondStatement(b) {
     b.emit({op, w: tmp, r1: v1, r2:v2})
 }
 
-var ifStmt=0;
 function parseIfStatement(b) {
-    logStack("parseIfStatement"); indent++;
     var prev = b;
 
-    var trueBlock = b; //new Block([b]);
+    var trueBlock = b;
     var falseBlock = new Block([b]);
 
     ifStmt++;
@@ -395,19 +336,13 @@ function parseIfStatement(b) {
         eatToken('}');
     }
     
-    indent--;
-
     var endBlock = new Block([trueBlock, falseBlock], 'endIf');
     trueBlock.emit({op: 'jmp', label: endBlock.name});
     
     return endBlock;
 }
 
-whileStmt=0;
 function parseWhileStatement(b) {
-    logStack("parseWhileStatement"); indent++;
-
-    whileStmt++;        
     var startBlock = b;
     var condBlock = new Block([startBlock]);
     condBlock.addParent(condBlock);
@@ -424,14 +359,10 @@ function parseWhileStatement(b) {
     eatToken('}');
     condBlock.emit({op:'jmp', label:condBlock.name});
 
-    indent--;
-
     return endBlock;
 }
 
 function parseStatement(b) {
-    logStack("parseStatement"); indent++;
-
     if(getToken().t == 'IF') {
         return parseIfStatement(b);
     } else if(getToken().t == 'WHILE') {
@@ -452,8 +383,6 @@ function parseStatement(b) {
         return rBlock;
     } else
         throw 'Expected IF/WHILE/NAME/FUNCTION or CALL but got ' + getToken().t;
-
-    indent--;
 }
 
 var functionDeclarations = {
@@ -461,15 +390,11 @@ var functionDeclarations = {
     'nok': 0,
 };
 function parseFunction(b) {
-    logStack("parseFunction"); indent++;
-
-    //b = new Block([b]);
-    
     eatToken('FUNCTION');
     var name = eatToken('NAME');    
 
     var functionStartLabel = name.v;
-    var f = {op:'functionstart', name:functionStartLabel, varCount:0, usedRegisters:{}};
+    var f = {op:'functionStart', name:functionStartLabel, varCount:0, usedRegisters:{}};
     b.func = f;
     b.emit(f);
     
@@ -582,18 +507,6 @@ function Parser() {
         eatToken('START');
         parseProgram();
         return blockList;
-    }
-    this.printIR = () => {
-        for(var i in blockList) {
-            console.log( blockList[i].name+':' );
-            for(var j in blockList[i].phis) {
-                var phi = blockList[i].phis[j];
-                console.log( phi.w, ':=', 'psi(', phi.r.join(', '), ')' );
-            }
-            if(blockList[i].assembly.length>0)
-                console.log( blockList[i].toStringIR().join("\n") );
-        }
-        console.log("");
     }
 }
 
