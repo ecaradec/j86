@@ -123,6 +123,8 @@ function Block(parents) {
                 text.push( ins.w.v+' := '+ins.r1.v );
             } else if(ins.op == '==') {
                 text.push( ins.w.v+' := '+ins.r1.v+' == '+ins.r2.v );
+            } else if(ins.op == '!=') {
+                text.push( ins.w.v+' := '+ins.r1.v+' != '+ins.r2.v );
             } else if(ins.op == 'PUSH') {
                 text.push( 'push '+ins.r1.v );
             } else if(ins.op == 'POP') {
@@ -137,11 +139,11 @@ function Block(parents) {
                 text.push( 'return '+ins.r1.v );
             } else if(ins.op == 'call') {
                 text.push( 'call '+ins.name );
-            } else if(ins.op == 'functionstart') {
+            } else if(ins.op == 'functionStart') {
                 text.push( 'function '+ins.name );
                 // console.log('SUB ESP, 12');
-            } else if(ins.op == 'functionend') {
-                text.push( 'functionend' );
+            } else if(ins.op == 'functionEnd') {
+                text.push( 'functionEnd' );
             } else {
                 text.push( JSON.stringify(ins) );
             }
@@ -221,7 +223,7 @@ function Block(parents) {
                 for(var j in registers ) {
                     printIns('push', registers[j])
                 }
-            } else if(ins.op == 'functionend') {
+            } else if(ins.op == 'functionEnd') {
                 if(getPrevIns(this).op != 'return') { // don't add ret if previous ins was return
                     var registers = Object.keys(this.func.usedRegisters).reverse();    
                     for(var r in registers ) {
@@ -496,7 +498,7 @@ function parseFunction(b) {
     if(vstack.length != 0) throw "Expected vstack to be empty";
 
     //emit({op:'RET'});
-    b.emit({op:'functionend', name:functionStartLabel, arguments});
+    b.emit({op:'functionEnd', name:functionStartLabel, arguments});
 
     indent--;
 

@@ -191,20 +191,6 @@ function replaceVars(n, registers) {
             ins.w = registers[ins.w.v];
         }
 
-        // instruction arguments where replaced by registers
-        // if no replacement was done, then this is a spill variable
-        // translate by pushing eax on stack and using it as temporary
-        /*if(ins.r1 && ins.r1.t == 'VAR') {
-            var eax = {t: 'REG', v: 'EAX'};
-            assembly.push({op: 'PUSH', r1:eax});
-            assembly.push({op: '=', w:eax, r1: ins.r1});
-            if(ins.r2 && ins.r2.t == 'VAR')
-                assembly.push({op: ins.op, w:eax, r1: ins.r2});
-            assembly.push({op: '=', w: ins.w, r1:eax});
-            assembly.push({op: 'POP', w:eax});
-            continue;
-        }*/
-
         // drop instruction that move register to iself
         if(ins.w != undefined && ins.w.v == ins.r1.v && ins.r2 == undefined) {
             continue;
@@ -218,11 +204,9 @@ function replaceVars(n, registers) {
     }    
 }
 
-
-
 module.exports = function(block) {
     buildGraph(block);
-    g.print();
+    // g.print();
     var registers = g.assignReg();    
     replaceVars(block, registers);
 }
