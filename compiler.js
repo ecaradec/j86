@@ -112,7 +112,7 @@ console.log("    ret");
 console.log();
 
 console.log("section .data");
-console.log("    _ok db	'ok',0xa");
-console.log("    _oklen equ 2");
-console.log("    _nok db	'nok',0xa");
-console.log("    _noklen equ 3");
+console.log("    _ok db	'ok',0xd, 0xa");
+console.log("    _oklen equ 3");
+console.log("    _nok db	'nok',0xd, 0xa");
+console.log("    _noklen equ 4");
