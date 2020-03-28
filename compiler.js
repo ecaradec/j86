@@ -68,51 +68,51 @@ parser.printIR();
 // EAX is only used for temporaries
 console.log("* Assembly");
 console.log("section .text");
-console.log("global _start");
+console.log("    global _start");
 for(var i in blockList) {
     console.log(blockList[i].name+':')
     blockList[i].printAssembly();
 }
 console.log("_start:");
-console.log("call main");
-console.log("mov eax, 1");
-console.log("int 0x80"); // sys_exit(1)
+console.log("    call main");
+console.log("    mov eax, 1");
+console.log("    int 0x80"); // sys_exit(1)
 console.log();
 
 // instrinsic function that print ok
 console.log("ok:");
-console.log("push ebx");
-console.log("push ecx");
-console.log("push edx");
-console.log("mov edx, _oklen")
-console.log("mov ecx, _ok")
-console.log("mov ebx, 1")
-console.log("mov eax, 4")
-console.log("int 0x80");
-console.log("pop edx");
-console.log("pop ecx");
-console.log("pop ebx");
-console.log("ret");
+console.log("    push ebx");
+console.log("    push ecx");
+console.log("    push edx");
+console.log("    mov edx, _oklen")
+console.log("    mov ecx, _ok")
+console.log("    mov ebx, 1")
+console.log("    mov eax, 4")
+console.log("    int 0x80");
+console.log("    pop edx");
+console.log("    pop ecx");
+console.log("    pop ebx");
+console.log("    ret");
 console.log();
 
 // instrinsic function that print nok
 console.log("nok:");
-console.log("push ebx");
-console.log("push ecx");
-console.log("push edx");
-console.log("mov edx, _noklen")
-console.log("mov ecx, _nok")
-console.log("mov ebx, 1")
-console.log("mov eax, 4")
-console.log("int 0x80");
-console.log("pop edx");
-console.log("pop ecx");
-console.log("pop ebx");
-console.log("ret");
+console.log("    push ebx");
+console.log("    push ecx");
+console.log("    push edx");
+console.log("    mov edx, _noklen")
+console.log("    mov ecx, _nok")
+console.log("    mov ebx, 1")
+console.log("    mov eax, 4")
+console.log("    int 0x80");
+console.log("    pop edx");
+console.log("    pop ecx");
+console.log("    pop ebx");
+console.log("    ret");
 console.log();
 
 console.log("section .data");
-console.log("_ok db	'ok',0xa");
-console.log("_oklen equ 2");
-console.log("_nok db	'nok',0xa");
-console.log("_noklen equ 3");
+console.log("    _ok db	'ok',0xa");
+console.log("    _oklen equ 2");
+console.log("    _nok db	'nok',0xa");
+console.log("    _noklen equ 3");

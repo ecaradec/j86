@@ -125,7 +125,7 @@ function Block(parents) {
                 text.push( 'push '+ins.r1.v );
             } else if(ins.op == 'POP') {
                 text.push( 'pop '+ins.w.v );
-            } else if(ins.op == 'JMP') {
+            } else if(ins.op == 'jmp') {
                 text.push( 'jmp '+ins.label );
             } else if(ins.op == 'ifTrue') {
                 text.push( 'ifTrue '+ins.r1.v+', '+ins.label );
@@ -133,7 +133,7 @@ function Block(parents) {
                 text.push( 'ifFalse '+ins.r1.v+', '+ins.label );
             } else if(ins.op == 'return') {
                 text.push( 'return '+ins.r1.v );
-            } else if(ins.op == 'CALL') {
+            } else if(ins.op == 'call') {
                 text.push( 'call '+ins.name );
             } else if(ins.op == 'functionstart') {
                 text.push( 'function '+ins.name );
@@ -160,77 +160,84 @@ function Block(parents) {
                 return n.assembly[i-1];
             return getLastIns(n.parents[0]); // should really check on all path, but it's enough for now
         }
+        function printIns() {
+            arguments[0] = '    '+arguments[0]
+            console.log.apply(this, arguments);
+        }
         for(var i=0;i<this.assembly.length;i++) {
             var ins = this.assembly[i];
 
             if(ins.op == '*') {
-                console.log('MOV EAX, '+ins.r1.v);
-                console.log('MUL EAX, '+ins.r2.v);
-                console.log('MOV '+ins.w.v+', EAX');
+                printIns('mov eax, '+ins.r1.v);
+                printIns('mul eax, '+ins.r2.v);
+                printIns('mov '+ins.w.v+', eax');
             } else if(ins.op == '+') {
-                console.log('MOV EAX, '+ins.r1.v);
-                console.log('ADD EAX, '+ins.r2.v);
-                console.log('MOV '+ins.w.v+', EAX');
+                printIns('mov eax, '+ins.r1.v);
+                printIns('add eax, '+ins.r2.v);
+                printIns('mov '+ins.w.v+', eax');
             } else if(ins.op == '-') {
-                console.log('MOV EAX, '+ins.r1.v);
-                console.log('SUB EAX, '+ins.r2.v);
-                console.log('MOV '+ins.w.v+', EAX');
+                printIns('mov eax, '+ins.r1.v);
+                printIns('sub eax, '+ins.r2.v);
+                printIns('mov '+ins.w.v+', eax');
             } else if(ins.op == '=') {
                 if(ins.w.v != ins.r1.v) {
                     // should really be done on IR
                     if((ins.w.t == 'VAR' || ins.w.t == 'STACKVAR') && 
                        (ins.r1.t == 'VAR' || ins.r1.t == 'STACKVAR') ) {
-                        console.log('MOV EAX, '+ins.r1.v);
-                        console.log('MOV '+ins.w.v+', EAX');
+                        printIns('mov eax, '+ins.r1.v);
+                        printIns('mov '+ins.w.v+', eax');
                     } else {
-                        console.log('MOV '+ins.w.v+', '+ins.r1.v);
+                        printIns('mov '+ins.w.v+', '+ins.r1.v);
                     }                    
                 }                
             } else if(ins.op == '==') {
-                console.log('CMP '+ins.r1.v+', '+ins.r2.v);
-                trueCond = 'EQ';
-                falseCond = 'NE';
+                printIns('cmp '+ins.r1.v+', '+ins.r2.v);
+                trueCond = 'e';
+                falseCond = 'ne';
+            } else if(ins.op == '!=') {
+                printIns('cmp '+ins.r1.v+', '+ins.r2.v);
+                trueCond = 'ne';
+                falseCond = 'e';
             } else if(ins.op == 'ifTrue') {
-                console.log('J'+trueCond+' '+ins.label);
+                printIns('j'+trueCond+' '+ins.label);
             } else if(ins.op == 'ifFalse') {
-                console.log('J'+falseCond+' '+ins.label);                
-            } else if(ins.op == 'PUSH') {
-                console.log('PUSH '+ins.r1.v);
-            } else if(ins.op == 'POP') {
-                console.log('POP '+ins.w.v);
-            } else if(ins.op == 'JMP') {
-                console.log('JMP '+ins.label);
-            } else if(ins.op == 'CALL') {
-                console.log('CALL '+ins.name);
+                printIns('j'+falseCond+' '+ins.label);                
+            } else if(ins.op == 'push') {
+                printIns('push '+ins.r1.v);
+            } else if(ins.op == 'pop') {
+                printIns('pop '+ins.w.v);
+            } else if(ins.op == 'jmp') {
+                printIns('jmp '+ins.label);
+            } else if(ins.op == 'call') {
+                printIns('call '+ins.name);
             } else if(ins.op == 'functionstart') {
                 console.log(ins.name+':');
-                console.log('PUSH EBP');
-                console.log('MOV EBP, ESP');
-                console.log('SUB ESP, '+(4*ins.varCount));
+                printIns('push ebp');
+                printIns('mov ebp, esp');
+                printIns('sub esp, '+(4*ins.varCount));
                 var registers = Object.keys(ins.usedRegisters);    
                 for(var j in registers ) {
-                    console.log('PUSH', registers[j])
+                    printIns('push', registers[j])
                 }
             } else if(ins.op == 'functionend') {
                 if(getPrevIns(this).op != 'return') { // don't add ret if previous ins was return
                     var registers = Object.keys(this.func.usedRegisters).reverse();    
                     for(var r in registers ) {
-                        console.log('POP', registers[r])
+                        printIns('pop', registers[r])
                     }
-                    console.log('LEAVE');
-                    console.log('RET', this.func.argCount*4);
+                    printIns('leave');
+                    printIns('ret', this.func.argCount*4);
                 }
             } else if(ins.op == 'return') {
-                console.log('MOV EAX, '+ins.r1.v);
+                printIns('mov eax, '+ins.r1.v);
                 var registers = Object.keys(this.func.usedRegisters).reverse();    
                 for(var r in registers ) {
-                    console.log('POP', registers[r])
+                    printIns('pop', registers[r])
                 }
-                console.log('LEAVE');
-                console.log('RET', this.func.argCount*4);
+                printIns('leave');
+                printIns('ret', this.func.argCount*4);
             } else {
-                console.log(JSON.stringify(ins));
-                console.log(ins.op == 'CALL');
+                printIns(JSON.stringify(ins));
             }
         }
     }
@@ -412,7 +419,7 @@ function parseWhileStatement(b) {
     eatToken('{');
     whileBlock = parseStatementList(whileBlock);
     eatToken('}');
-    whileBlock.emit({op:'JMP', label:condBlock.name});
+    whileBlock.emit({op:'jmp', label:condBlock.name});
 
     indent--;
 
@@ -528,7 +535,7 @@ function parseFunctionCall(b) {
     }
     eatToken(')');
     eatToken(';');
-    b.emit({op:'CALL', name: name.v});
+    b.emit({op:'call', name: name.v});
 
     indent--;
     return b;
