@@ -2,63 +2,47 @@ function getToken() {
     return currentToken;
 }
 
-currentToken = {'t': 'START', l:0};
+currentToken = { t: 'START', l: 0 };
 function eatToken(t) {
-    if(currentToken.t != t)
-        throw 'Expected '+t+' but got '+currentToken.t;
+    if (currentToken.t != t)
+        throw 'Expected ' + t + ' but got ' + currentToken.t;
 
     var ret = currentToken;
-    
-    program = program.substring(currentToken.l);
-    program = program.replace(/^ */,'');
-    program = program.replace(/^\n/,'');
-    // console.log(program);
-    
-    var m;
-    if(m=program.match(/^([0-9]+)/))
-        currentToken = {'t': 'DIGIT', v: m[1], l: m[1].length};
-    else if(m=program.match(/^([+-])/))
-        currentToken = {'t': 'SUM', l: 1, v:m[1]};
-    else if(m=program.match(/^\*/))
-        currentToken = {'t': 'PRODUCT', l: 1};      
-    else if(m=program.match(/^(=) +/))
-        currentToken = {'t': 'EQUAL', l: 1};
-    else if(m=program.match(/^(==) +/))
-        currentToken = {'t': '==', l: 2};
-    else if(m=program.match(/^(!=) +/))
-        currentToken = {'t': '!=', l: 2};
-    else if(m=program.match(/^(WHILE)/))
-        currentToken = {'t': 'WHILE', l: 5};
-    else if(m=program.match(/^(FUNCTION)/))
-        currentToken = {'t': 'FUNCTION', l: 8};
-    else if(m=program.match(/^(CALL)/))
-        currentToken = {'t': 'CALL', l: 4};
-    else if(m=program.match(/^(RETURN)/))
-        currentToken = {'t': 'RETURN', l: 6};
-    else if(m=program.match(/^(IF)/))
-        currentToken = {'t': 'IF', l: 2};
-    else if(m=program.match(/^(ELSE)/))
-        currentToken = {'t': 'ELSE', l: 4};
-    else if(m=program.match(/^(\{)/))
-        currentToken = {'t': '{', l: 1};
-    else if(m=program.match(/^(\})/))
-        currentToken = {'t': '}', l: 1};
-    else if(m=program.match(/^(\()/))
-        currentToken = {'t': '(', l: 1};
-    else if(m=program.match(/^(\))/))
-        currentToken = {'t': ')', l: 1};
-    else if(m=program.match(/^(\;)/))
-        currentToken = {'t': ';', l: 1};
-    else if(m=program.match(/^(,)/))
-        currentToken = {'t': ',', l: 1}; 
-    else if(m=program.match(/^([a-z]+)/))
-        currentToken = {'t': 'NAME', v: m[1], l: m[1].length};
 
-    else if(program == '')
-        currentToken = {'t': 'END', l: 0};
-    else
-        throw 'Unexpected token at '+program;
-    
+    program = program.substring(currentToken.l);
+    program = program.replace(/^ */, '');
+    program = program.replace(/^\n/, '');
+    // console.log(program);
+
+    var m;
+    if ((m = program.match(/^([0-9]+)/)))
+        currentToken = { t: 'DIGIT', v: m[1], l: m[1].length };
+    else if ((m = program.match(/^([+-])/)))
+        currentToken = { t: 'SUM', l: 1, v: m[1] };
+    else if ((m = program.match(/^\*/))) currentToken = { t: 'PRODUCT', l: 1 };
+    else if ((m = program.match(/^(=) +/))) currentToken = { t: 'EQUAL', l: 1 };
+    else if ((m = program.match(/^(==) +/))) currentToken = { t: '==', l: 2 };
+    else if ((m = program.match(/^(!=) +/))) currentToken = { t: '!=', l: 2 };
+    else if ((m = program.match(/^(WHILE)/)))
+        currentToken = { t: 'WHILE', l: 5 };
+    else if ((m = program.match(/^(FUNCTION)/)))
+        currentToken = { t: 'FUNCTION', l: 8 };
+    else if ((m = program.match(/^(CALL)/))) currentToken = { t: 'CALL', l: 4 };
+    else if ((m = program.match(/^(RETURN)/)))
+        currentToken = { t: 'RETURN', l: 6 };
+    else if ((m = program.match(/^(IF)/))) currentToken = { t: 'IF', l: 2 };
+    else if ((m = program.match(/^(ELSE)/))) currentToken = { t: 'ELSE', l: 4 };
+    else if ((m = program.match(/^(\{)/))) currentToken = { t: '{', l: 1 };
+    else if ((m = program.match(/^(\})/))) currentToken = { t: '}', l: 1 };
+    else if ((m = program.match(/^(\()/))) currentToken = { t: '(', l: 1 };
+    else if ((m = program.match(/^(\))/))) currentToken = { t: ')', l: 1 };
+    else if ((m = program.match(/^(\;)/))) currentToken = { t: ';', l: 1 };
+    else if ((m = program.match(/^(,)/))) currentToken = { t: ',', l: 1 };
+    else if ((m = program.match(/^([a-z]+)/)))
+        currentToken = { t: 'NAME', v: m[1], l: m[1].length };
+    else if (program == '') currentToken = { t: 'END', l: 0 };
+    else throw 'Unexpected token at ' + program;
+
     // console.log(ret,'<',currentToken);
 
     return ret;
@@ -75,14 +59,14 @@ function Block(parents) {
     this.parents = [];
     this.variables = {};
     this.phis = {};
-    this.name = 'block_'+blockId;
+    this.name = 'block_' + blockId;
 
-    if(parents.length>0) {
+    if (parents.length > 0) {
         this.func = parents[0].func;
     }
     blockId++;
 
-    for(var i in parents) {
+    for (var i in parents) {
         parents[i].children.push(this);
         this.parents.push(parents[i]);
     }
@@ -91,23 +75,26 @@ function Block(parents) {
         this.parents.push(p);
         p.children.push(this);
         this.func = p.func;
-    }
+    };
 
     this.emit = (data) => {
         // console.log(data);
-        if(data==undefined) data={};
+        if (data == undefined) data = {};
         this.assembly.push(data);
         return this.assembly.length - 1;
-    }
+    };
 
     this.print = () => {
-        console.log("# "+this.name, this.children.map( (x) => x.name ) );
-        for(var i=0;i<this.assembly.length;i++) {
-            var ins = {...this.assembly[i]};
+        console.log(
+            '# ' + this.name,
+            this.children.map((x) => x.name)
+        );
+        for (var i = 0; i < this.assembly.length; i++) {
+            var ins = { ...this.assembly[i] };
 
-            console.log(' '+JSON.stringify(ins));
+            console.log(' ' + JSON.stringify(ins));
         }
-    }
+    };
 }
 
 var vstack = [];
@@ -122,41 +109,40 @@ function pushVStack(v) {
 
 function logStack(n) {
     var leftPad = '';
-    for(var i=0;i<indent;i++)
-        leftPad+=' ';
+    for (var i = 0; i < indent; i++) leftPad += ' ';
 }
 
 function parseTerm(b) {
-    if(getToken().t == 'DIGIT') {
+    if (getToken().t == 'DIGIT') {
         var v = eatToken('DIGIT');
         pushVStack(v);
-    } else if(getToken().t == 'NAME') {
+    } else if (getToken().t == 'NAME') {
         var varname = eatToken('NAME');
-        vstack.push({t: 'VAR', v: varname.v});
+        vstack.push({ t: 'VAR', v: varname.v });
     }
 
     return b;
 }
 
-var tmp=0;
+var tmp = 0;
 function getTmpVar() {
-    return "tmp"+(tmp++);
+    return 'tmp' + tmp++;
 }
 
 function parseSum(b) {
     parseProduct(b);
-    if( getToken().t == 'SUM' ) {
+    if (getToken().t == 'SUM') {
         var s = eatToken('SUM');
         b = parseSum(b);
 
         var op2 = popVStack();
         var op1 = popVStack();
-        var dst = {t:'VAR', v:getTmpVar()};
+        var dst = { t: 'VAR', v: getTmpVar() };
 
-        if(s.v=='+') {
-            b.emit({op:'+', w:dst, r1:op1, r2:op2});
+        if (s.v == '+') {
+            b.emit({ op: '+', w: dst, r1: op1, r2: op2 });
         } else {
-            b.emit({op:'-', w:dst, r1:op1, r2:op2});
+            b.emit({ op: '-', w: dst, r1: op1, r2: op2 });
         }
 
         pushVStack(dst);
@@ -167,14 +153,14 @@ function parseSum(b) {
 
 function parseProduct(b) {
     b = parseTerm(b);
-    if( getToken().t == 'PRODUCT' ) {
+    if (getToken().t == 'PRODUCT') {
         eatToken('PRODUCT');
         b = parseProduct(b);
         var op2 = popVStack();
         var op1 = popVStack();
-        var dst = {t:'VAR', v:getTmpVar()};
+        var dst = { t: 'VAR', v: getTmpVar() };
 
-        b.emit({op:'*', w:dst, r1:op1, r2:op2});
+        b.emit({ op: '*', w: dst, r1: op1, r2: op2 });
         pushVStack(dst);
     }
     return b;
@@ -186,8 +172,8 @@ function parseAssignment(dst, b) {
     eatToken('EQUAL');
     b = parseSum(b);
     var src = popVStack();
-    
-    b.emit({op: '=', w:{t:'VAR', v:dst.v}, r1:src});
+
+    b.emit({ op: '=', w: { t: 'VAR', v: dst.v }, r1: src });
     eatToken(';');
 
     return b;
@@ -195,10 +181,10 @@ function parseAssignment(dst, b) {
 
 function parseCondStatement(b) {
     parseSum(b);
-    if(getToken().t == '==') {
+    if (getToken().t == '==') {
         eatToken('==');
         var op = '==';
-    } else if(getToken().t == '!=') {
+    } else if (getToken().t == '!=') {
         eatToken('!=');
         var op = '!=';
     } else {
@@ -207,8 +193,8 @@ function parseCondStatement(b) {
     parseSum(b);
     var v2 = popVStack();
     var v1 = popVStack();
-    var tmp = {t:'INTRINSIC', v: '$cond'};
-    b.emit({op, w: tmp, r1: v1, r2:v2})
+    var tmp = { t: 'INTRINSIC', v: '$cond' };
+    b.emit({ op, w: tmp, r1: v1, r2: v2 });
 }
 
 function parseIfStatement(b) {
@@ -221,24 +207,24 @@ function parseIfStatement(b) {
     eatToken('IF');
     eatToken('(');
     b = parseCondStatement(b);
-    var tmp = {t:'INTRINSIC', v: '$cond'};
-    prev.emit({op:'ifFalse', r1: tmp, label:falseBlock.name});
+    var tmp = { t: 'INTRINSIC', v: '$cond' };
+    prev.emit({ op: 'ifFalse', r1: tmp, label: falseBlock.name });
 
     eatToken(')');
     eatToken('{');
     trueBlock = parseStatementList(trueBlock);
     eatToken('}');
 
-    if(getToken().t == 'ELSE') {
+    if (getToken().t == 'ELSE') {
         eatToken('ELSE');
         eatToken('{');
         falseBlock = parseStatementList(falseBlock);
         eatToken('}');
     }
-    
+
     var endBlock = new Block([trueBlock, falseBlock], 'endIf');
-    trueBlock.emit({op: 'jmp', label: endBlock.name});
-    
+    trueBlock.emit({ op: 'jmp', label: endBlock.name });
+
     return endBlock;
 }
 
@@ -251,33 +237,30 @@ function parseWhileStatement(b) {
     eatToken('WHILE');
     eatToken('(');
     b = parseCondStatement(condBlock);
-    var tmp = {t:'INTRINSIC', v: '$cond'};
-    condBlock.emit({op:'ifFalse', r1: tmp, label:endBlock.name}); // exit if condition is false
+    var tmp = { t: 'INTRINSIC', v: '$cond' };
+    condBlock.emit({ op: 'ifFalse', r1: tmp, label: endBlock.name }); // exit if condition is false
     eatToken(')');
     eatToken('{');
     condBlock = parseStatementList(condBlock);
     eatToken('}');
-    condBlock.emit({op:'jmp', label:condBlock.name});
+    condBlock.emit({ op: 'jmp', label: condBlock.name });
 
     return endBlock;
 }
 
 function parseStatement(b) {
-    if(getToken().t == 'IF') {
+    if (getToken().t == 'IF') {
         return parseIfStatement(b);
-    } else if(getToken().t == 'WHILE') {
+    } else if (getToken().t == 'WHILE') {
         return parseWhileStatement(b);
-    } else if(getToken().t == 'NAME') {
+    } else if (getToken().t == 'NAME') {
         var name = eatToken('NAME');
-        if(getToken().t == 'EQUAL')
-            return parseAssignment(name, b);
-        else if(getToken().t == '(')
-            return parseFunctionCall(name, b);
-        else
-            throw 'Expected = or ( but got ' + getToken().t;
-    } else if(getToken().t == 'FUNCTION') {
+        if (getToken().t == 'EQUAL') return parseAssignment(name, b);
+        else if (getToken().t == '(') return parseFunctionCall(name, b);
+        else throw 'Expected = or ( but got ' + getToken().t;
+    } else if (getToken().t == 'FUNCTION') {
         return parseFunction(b);
-    } else if(getToken().t == 'RETURN') {
+    } else if (getToken().t == 'RETURN') {
         var rBlock = new Block([b]);
         parseReturn(b);
         return rBlock;
@@ -286,29 +269,42 @@ function parseStatement(b) {
 }
 
 var functionDeclarations = {
-    'ok': 0,
-    'nok': 0,
+    ok: 0,
+    nok: 0,
 };
 function parseFunction(b) {
     eatToken('FUNCTION');
-    var name = eatToken('NAME');    
+    var name = eatToken('NAME');
 
     var functionStartLabel = name.v;
-    var f = {op:'functionStart', name:functionStartLabel, varCount:0, usedRegisters:{}};
+    var f = {
+        op: 'functionStart',
+        name: functionStartLabel,
+        varCount: 0,
+        usedRegisters: {},
+    };
     b.func = f;
     b.emit(f);
-    
+
     eatToken('(');
-    b.variables=[];
+    b.variables = [];
     var i = 0;
-    if(getToken().t == 'NAME') {
+    if (getToken().t == 'NAME') {
         var n = eatToken('NAME');
-        b.variables[n.v] = {t: 'STACKVAR', v: '[EBP+'+(4*i+8)+']', index: i};
+        b.variables[n.v] = {
+            t: 'STACKVAR',
+            v: '[EBP+' + (4 * i + 8) + ']',
+            index: i,
+        };
         i++;
-        while(getToken().t == ',') {
+        while (getToken().t == ',') {
             eatToken(',');
             var n = eatToken('NAME');
-            b.variables[n.v] = {t: 'STACKVAR', v: '[EBP+'+(4*i+8)+']', index: i};
+            b.variables[n.v] = {
+                t: 'STACKVAR',
+                v: '[EBP+' + (4 * i + 8) + ']',
+                index: i,
+            };
             i++;
         }
     }
@@ -320,10 +316,10 @@ function parseFunction(b) {
     eatToken('}');
 
     // all values should be consumed at this point
-    if(vstack.length != 0) throw "Expected vstack to be empty";
+    if (vstack.length != 0) throw 'Expected vstack to be empty';
 
     //emit({op:'RET'});
-    b.emit({op:'functionEnd', name:functionStartLabel, arguments});
+    b.emit({ op: 'functionEnd', name: functionStartLabel, arguments });
 
     indent--;
 
@@ -335,41 +331,41 @@ function parseReturn(b) {
     b = parseSum(b);
     var r1 = popVStack();
     eatToken(';');
-    b.emit({op: 'return', r1});
+    b.emit({ op: 'return', r1 });
     return b;
 }
 
 function parseFunctionCall(name, b) {
     eatToken('(');
-    if(functionDeclarations[name.v] === undefined) {
-        throw 'Function '+name.v+' doesnt exists';
+    if (functionDeclarations[name.v] === undefined) {
+        throw 'Function ' + name.v + ' doesnt exists';
     }
     var argumentsCount = 0;
-    if(getToken().t != ')') {
+    if (getToken().t != ')') {
         parseSum();
         var r1 = popVStack();
-        b.emit({op: 'PUSH', r1});
+        b.emit({ op: 'PUSH', r1 });
         argumentsCount++;
-        while(getToken().t == ',') {
+        while (getToken().t == ',') {
             eatToken(',');
             parseSum();
             var r1 = popVStack();
-            b.emit({op: 'PUSH', r1});
+            b.emit({ op: 'PUSH', r1 });
             argumentsCount++;
         }
     }
-    if(functionDeclarations[name.v] !== argumentsCount) {
-        throw 'Function call "'+name.v+'" doesnt match declared arguments';
+    if (functionDeclarations[name.v] !== argumentsCount) {
+        throw 'Function call "' + name.v + '" doesnt match declared arguments';
     }
     eatToken(')');
     eatToken(';');
-    b.emit({op:'call', name: name.v});
+    b.emit({ op: 'call', name: name.v });
 
     return b;
 }
 
 function parseStatementList(b) {
-    while(getToken().t != '}') {
+    while (getToken().t != '}') {
         b = parseStatement(b);
     }
 
@@ -377,10 +373,11 @@ function parseStatementList(b) {
 }
 
 function parseProgram() {
-    logStack("parseProgram"); indent++;
+    logStack('parseProgram');
+    indent++;
     var start = new Block([]);
 
-    while(getToken().t == 'FUNCTION') {
+    while (getToken().t == 'FUNCTION') {
         var fBlock = new Block([start]);
         parseFunction(fBlock);
     }
@@ -396,9 +393,9 @@ function Parser() {
         program = p;
         eatToken('START');
         return parseProgram();
-    }
+    };
 }
 
-var parser = new Parser;
+var parser = new Parser();
 
 module.exports = parser;
