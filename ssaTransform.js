@@ -47,7 +47,7 @@ function addVariable(n, v) {
 }
 
 function transform(n) {
-    for (const ins of n.assembly) {
+    for (const ins of n.ilcode) {
         if (ins.r1 && ins.r1.t == 'VAR') ins.r1 = getVariable(n, ins.r1);
         if (ins.r2 && ins.r2.t == 'VAR') ins.r2 = getVariable(n, ins.r2);
         if (ins.w && ins.w.t == 'VAR') ins.w = addVariable(n, ins.w);
@@ -64,8 +64,8 @@ function bfs(n, f) {
         if (c.visited == f) continue;
         c.visited = f;
         f(c);
-        for (const i in c.children) {
-            stack.push(c.children[i]);
+        for (const i in c.successors) {
+            stack.push(c.successors[i]);
         }
     }
 }

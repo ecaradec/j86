@@ -44,7 +44,7 @@ printIR(program);
 // Print SSA-IR
 //
 console.log('* SSA-IR');
-ssaTransform(program, program, {}, {});
+ssaTransform(program);
 printIR(program);
 console.log('');
 

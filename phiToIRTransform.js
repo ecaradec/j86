@@ -12,7 +12,7 @@ function psiToIRTransform(n) {
         // the remaining are the value to select
         // each value know in src, from which block it was know
         for (var i in phi.r) {
-            const ass = n.predecessors[i].assembly;
+            const ass = n.predecessors[i].ilcode;
             let lastJump;
             let lastCond;
 

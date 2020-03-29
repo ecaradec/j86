@@ -10,7 +10,7 @@ const blockList = [];
 function Block(predecessors) {
     blockList.push(this);
 
-    this.assembly = [];
+    this.ilcode = [];
     this.successors = [];
     this.predecessors = [];
     this.variables = {};
@@ -36,8 +36,8 @@ function Block(predecessors) {
     this.emit = (data) => {
         // console.log(data);
         if (data == undefined) data = {};
-        this.assembly.push(data);
-        return this.assembly.length - 1;
+        this.ilcode.push(data);
+        return this.ilcode.length - 1;
     };
 }
 

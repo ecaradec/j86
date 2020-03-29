@@ -1,6 +1,6 @@
 function toStringIR(b) {
     const text = [];
-    for (let ins of b.assembly) {
+    for (let ins of b.ilcode) {
         // text.push(JSON.stringify(ins));
         if (ins.op == '*') {
             text.push(`${ins.w.v} := ${ins.r1.v} * ${ins.r2.v}`);
@@ -48,7 +48,7 @@ function printIR(b) {
         const phi = b.phis[j];
         console.log(phi.w, ':=', 'psi(', phi.r.join(', '), ')');
     }
-    if (b.assembly.length > 0) console.log(toStringIR(b).join('\n'));
+    if (b.ilcode.length > 0) console.log(toStringIR(b).join('\n'));
 
     for (const child of b.successors) {
         printIR(child);

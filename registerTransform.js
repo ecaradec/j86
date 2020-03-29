@@ -72,10 +72,7 @@ function assignReg() {
             k: 'edx',
             v: 'edx'
         },
-    };
-
-    // creates as many registers as there is variables, we'll try to use as few as possible
-    // stack variables can be reused just the same as register
+    }; // creates as many registers as there is variables, we'll try to use as few as possible     // stack variables can be reused just the same as register
     let k = 1;
     for (let i in nodes) {
         if (
@@ -92,10 +89,9 @@ function assignReg() {
         k++;
     }
 
-    for (let i in dropped.connections) {
-        const n = dropped.connections[i];
-        delete availReg[nodes[n].reg.k];
-        addEdge(dropped.id, n);
+    for (const connection in dropped.connections) {
+        delete availReg[nodes[connection].reg.k];
+        addEdge(dropped.id, connection);
     }
 
     // assign register if one left, or spill variable
@@ -121,8 +117,8 @@ function addFullyLinkedNodes(keys) {
 
 // should parse code as a graph too
 function buildGraph(n) {
-    if (n.visited == 'graph') return;
-    n.visited = 'graph';
+    if (n.visited == buildGraph) return;
+    n.visited = buildGraph;
 
     let activeNodes = {};
     for (var i in n.successors) {
@@ -131,14 +127,12 @@ function buildGraph(n) {
         };
     }
 
-    // Propagate read variables for backward
+    let x = 0;
+    // Propagate read variables from backward
     // When a variable is read, it's added to the list of active variables
     // When a variable is written, it is removed from the list of active variable
-    const {
-        assembly
-    } = n;
-    for (let i = assembly.length - 1; i >= 0; i--) {
-        const ins = assembly[i];
+    for (let i = n.ilcode.length - 1; i >= 0; i--) {
+        const ins = n.ilcode[i];
         if (ins == undefined) continue;
 
         //
@@ -182,8 +176,8 @@ function replaceVars(n, registers) {
         }
     }
 
-    const assembly = [];
-    for (const ins of n.assembly) {
+    const ilcode = [];
+    for (const ins of n.ilcode) {
         if (ins.r1 && ins.r1.t == 'VAR') {
             ins.r1 = registers[ins.r1.v];
         }
@@ -200,9 +194,9 @@ function replaceVars(n, registers) {
         if (ins.w != undefined && ins.w.v == ins.r1.v && ins.r2 == undefined) {
             continue;
         }
-        assembly.push(ins);
+        ilcode.push(ins);
     }
-    n.assembly = assembly;
+    n.ilcode = ilcode;
 
     for (const s of n.successors) {
         replaceVars(s, registers);
