@@ -20,91 +20,91 @@ function eatToken(t) {
 
     let m;
     if ((m = program.match(/^([0-9]+)/)))
-        currentToken = {
+        return {
             t: 'DIGIT',
             v: m[1],
             l: m[1].length
         };
     else if ((m = program.match(/^([+-])/)))
-        currentToken = {
+        return {
             t: 'SUM',
             l: 1,
             v: m[1]
         };
-    else if ((m = program.match(/^\*/))) currentToken = {
+    else if ((m = program.match(/^\*/))) return {
         t: 'PRODUCT',
         l: 1
     };
-    else if ((m = program.match(/^(=) +/))) currentToken = {
+    else if ((m = program.match(/^(=) +/))) return {
         t: 'EQUAL',
         l: 1
     };
-    else if ((m = program.match(/^(==) +/))) currentToken = {
+    else if ((m = program.match(/^(==) +/))) return {
         t: '==',
         l: 2
     };
-    else if ((m = program.match(/^(!=) +/))) currentToken = {
+    else if ((m = program.match(/^(!=) +/))) return {
         t: '!=',
         l: 2
     };
     else if ((m = program.match(/^(WHILE)/)))
-        currentToken = {
+        return {
             t: 'WHILE',
             l: 5
         };
     else if ((m = program.match(/^(FUNCTION)/)))
-        currentToken = {
+        return {
             t: 'FUNCTION',
             l: 8
         };
-    else if ((m = program.match(/^(CALL)/))) currentToken = {
+    else if ((m = program.match(/^(CALL)/))) return {
         t: 'CALL',
         l: 4
     };
     else if ((m = program.match(/^(RETURN)/)))
-        currentToken = {
+        return {
             t: 'RETURN',
             l: 6
         };
-    else if ((m = program.match(/^(IF)/))) currentToken = {
+    else if ((m = program.match(/^(IF)/))) return {
         t: 'IF',
         l: 2
     };
-    else if ((m = program.match(/^(ELSE)/))) currentToken = {
+    else if ((m = program.match(/^(ELSE)/))) return {
         t: 'ELSE',
         l: 4
     };
-    else if ((m = program.match(/^(\{)/))) currentToken = {
+    else if ((m = program.match(/^(\{)/))) return {
         t: '{',
         l: 1
     };
-    else if ((m = program.match(/^(\})/))) currentToken = {
+    else if ((m = program.match(/^(\})/))) return {
         t: '}',
         l: 1
     };
-    else if ((m = program.match(/^(\()/))) currentToken = {
+    else if ((m = program.match(/^(\()/))) return {
         t: '(',
         l: 1
     };
-    else if ((m = program.match(/^(\))/))) currentToken = {
+    else if ((m = program.match(/^(\))/))) return {
         t: ')',
         l: 1
     };
-    else if ((m = program.match(/^(;)/))) currentToken = {
+    else if ((m = program.match(/^(;)/))) return {
         t: ';',
         l: 1
     };
-    else if ((m = program.match(/^(,)/))) currentToken = {
+    else if ((m = program.match(/^(,)/))) return {
         t: ',',
         l: 1
     };
     else if ((m = program.match(/^([a-z]+)/)))
-        currentToken = {
+        return {
             t: 'NAME',
             v: m[1],
             l: m[1].length
         };
-    else if (program == '') currentToken = {
+    else if (program == '') return {
         t: 'END',
         l: 0
     };
