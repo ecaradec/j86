@@ -1,133 +1,124 @@
 //
 // REGISTER ALLOCATION
 //
-//
-const Graph = function () {
-    const nodes = {};
-    this.spill = 0;
+const nodes = {};
 
-    this.addNode = n => {
-        if (nodes[n] != undefined) return;
-        nodes[n] = {
-            connections: []
-        };
+function addNode(n) {
+    if (nodes[n] != undefined) return;
+    nodes[n] = {
+        connections: []
     };
-    this.addEdge = (a, b) => {
-        if (nodes[a].connections.indexOf(b) == -1) nodes[a].connections.push(b);
-        if (nodes[b].connections.indexOf(a) == -1) nodes[b].connections.push(a);
+}
+
+function addEdge(a, b) {
+    if (nodes[a].connections.indexOf(b) == -1) nodes[a].connections.push(b);
+    if (nodes[b].connections.indexOf(a) == -1) nodes[b].connections.push(a);
+}
+
+function findLowestConnectedNode() {
+    let lowestConnectionNb = 1000000;
+    let lowestConnectedNode;
+
+    for (const i in nodes) {
+        if (nodes[i].connections.length < lowestConnectionNb) {
+            lowestConnectionNb = nodes[i].connections.length;
+            lowestConnectedNode = i;
+        }
+    }
+    return lowestConnectedNode;
+}
+
+function dropNode(n) {
+    const cloned = {
+        id: n,
+        connections: [...nodes[n].connections]
     };
-    this.findLowestConnectedNode = () => {
-        let lowestConnectionNb = 1000000;
-        let lowestConnectedNode;
 
-        for (const i in nodes) {
-            if (nodes[i].connections.length < lowestConnectionNb) {
-                lowestConnectionNb = nodes[i].connections.length;
-                lowestConnectedNode = i;
-            }
-        }
-        return lowestConnectedNode;
+    for (const i in nodes[n].connections) {
+        const nn = nodes[n].connections[i];
+
+        const pos = nodes[nn].connections.indexOf(n);
+        if (pos != -1) nodes[nn].connections.splice(pos, 1);
+    }
+    delete nodes[n];
+
+    return cloned;
+}
+
+function assignReg() {
+    const d = findLowestConnectedNode();
+    if (d == undefined) return;
+
+    const dropped = dropNode(d);
+
+    assignReg();
+
+    // build back graph and delete used registers
+    addNode(dropped.id);
+    // EAX is always used as a temporary
+    const availReg = {
+        ebx: {
+            t: 'REG',
+            k: 'ebx',
+            v: 'ebx'
+        },
+        ecx: {
+            t: 'REG',
+            k: 'ecx',
+            v: 'ecx'
+        },
+        edx: {
+            t: 'REG',
+            k: 'edx',
+            v: 'edx'
+        },
     };
-    this.dropNode = n => {
-        const cloned = {
-            id: n,
-            connections: [...nodes[n].connections]
-        };
 
-        for (const i in nodes[n].connections) {
-            const nn = nodes[n].connections[i];
-
-            const pos = nodes[nn].connections.indexOf(n);
-            if (pos != -1) nodes[nn].connections.splice(pos, 1);
+    // creates as many registers as there is variables, we'll try to use as few as possible
+    // stack variables can be reused just the same as register
+    // var availReg = {};
+    let k = 1;
+    for (let i in nodes) {
+        if (
+            k < 3 // availReg['r'+k] = {t: 'REG', k: 'r'+k, v: 'r'+k};
+        );
+        else {
+            availReg[`s${k}`] = {
+                t: 'VAR',
+                k: `s${k}`,
+                v: `DWORD [EBP-${4 * (k - 3) + 4}]`,
+                index: k - 3,
+            };
         }
-        delete nodes[n];
+        k++;
+    }
+    // var availReg = {'EBX':true, 'ECX':true, 'S0': true, 'S1': true};
+    for (let i in dropped.connections) {
+        const n = dropped.connections[i];
+        delete availReg[nodes[n].reg.k];
+        addEdge(dropped.id, n);
+    }
 
-        return cloned;
-    };
-    this.assignReg = () => {
-        const d = this.findLowestConnectedNode();
-        if (d == undefined) return;
+    // assign register if one left, or spill variable
+    nodes[dropped.id].reg = availReg[Object.keys(availReg)[0]];
 
-        const dropped = this.dropNode(d);
+    const registers = {};
+    for (let i in nodes) {
+        registers[i] = nodes[i].reg;
+    }
+    return registers;
+}
 
-        this.assignReg();
-
-        // build back graph and delete used registers
-        this.addNode(dropped.id);
-        // EAX is always used as a temporary
-        const availReg = {
-            ebx: {
-                t: 'REG',
-                k: 'ebx',
-                v: 'ebx'
-            },
-            ecx: {
-                t: 'REG',
-                k: 'ecx',
-                v: 'ecx'
-            },
-            edx: {
-                t: 'REG',
-                k: 'edx',
-                v: 'edx'
-            },
-        };
-
-        // creates as many registers as there is variables, we'll try to use as few as possible
-        // stack variables can be reused just the same as register
-        // var availReg = {};
-        let k = 1;
-        for (let i in nodes) {
-            if (
-                k < 3 // availReg['r'+k] = {t: 'REG', k: 'r'+k, v: 'r'+k};
-            );
-            else {
-                availReg[`s${k}`] = {
-                    t: 'VAR',
-                    k: `s${k}`,
-                    v: `DWORD [EBP-${4 * (k - 3) + 4}]`,
-                    index: k - 3,
-                };
-            }
-            k++;
+function addFullyLinkedNodes(keys) {
+    for (let ii = 0; ii < keys.length; ii++) {
+        addNode(keys[ii]);
+    }
+    for (let ii = 0; ii < keys.length; ii++) {
+        for (let jj = 0; jj < keys.length; jj++) {
+            if (ii != jj) addEdge(keys[ii], keys[jj]);
         }
-        // var availReg = {'EBX':true, 'ECX':true, 'S0': true, 'S1': true};
-        for (let i in dropped.connections) {
-            const n = dropped.connections[i];
-            delete availReg[nodes[n].reg.k];
-            this.addEdge(dropped.id, n);
-        }
-
-        // assign register if one left, or spill variable
-        nodes[dropped.id].reg = availReg[Object.keys(availReg)[0]];
-
-        const registers = {};
-        for (let i in nodes) {
-            registers[i] = nodes[i].reg;
-        }
-        return registers;
-    };
-    this.print = () => {
-        // for(var i in nodes) {
-        //    var n = nodes[i];
-        //    console.log(i,'->', n.connections.join(', '));
-        // }
-        // console.log(nodes);
-        // console.log(registers);
-    };
-    this.addFullyLinkedNodes = keys => {
-        for (let ii = 0; ii < keys.length; ii++) {
-            this.addNode(keys[ii]);
-        }
-        for (let ii = 0; ii < keys.length; ii++) {
-            for (let jj = 0; jj < keys.length; jj++) {
-                if (ii != jj) this.addEdge(keys[ii], keys[jj]);
-            }
-        }
-    };
-};
-
-const g = new Graph();
+    }
+}
 
 // should parse code as a graph too
 function buildGraph(n) {
@@ -157,7 +148,7 @@ function buildGraph(n) {
         // Ensure a variable is available to write
         if (ins.w && ins.w.t == 'VAR') activeNodes[ins.w.v] = true;
 
-        g.addFullyLinkedNodes(Object.keys(activeNodes));
+        addFullyLinkedNodes(Object.keys(activeNodes));
 
         //
         // before instruction
@@ -169,7 +160,7 @@ function buildGraph(n) {
 
         if (ins.r2 && ins.r2.t == 'VAR') activeNodes[ins.r2.v] = true;
 
-        g.addFullyLinkedNodes(Object.keys(activeNodes));
+        addFullyLinkedNodes(Object.keys(activeNodes));
     }
 
     return activeNodes;
@@ -223,7 +214,6 @@ function replaceVars(n, registers) {
 
 module.exports = function (block) {
     buildGraph(block);
-    // g.print();
-    const registers = g.assignReg();
+    const registers = assignReg();
     replaceVars(block, registers);
 };

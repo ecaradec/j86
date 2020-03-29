@@ -11,7 +11,7 @@ function getToken() {
 function eatToken(t) {
     if (currentToken.t != t) throw `Expected ${t} but got ${currentToken.t}`;
 
-    const ret = currentToken;
+    let ret = currentToken;
 
     program = program.substring(currentToken.l);
     program = program.replace(/^ */, '');
@@ -20,97 +20,110 @@ function eatToken(t) {
 
     let m;
     if ((m = program.match(/^([0-9]+)/)))
-        return {
+        currentToken = {
             t: 'DIGIT',
             v: m[1],
             l: m[1].length
         };
     else if ((m = program.match(/^([+-])/)))
-        return {
+        currentToken = {
             t: 'SUM',
             l: 1,
             v: m[1]
         };
-    else if ((m = program.match(/^\*/))) return {
-        t: 'PRODUCT',
-        l: 1
-    };
-    else if ((m = program.match(/^(=) +/))) return {
-        t: 'EQUAL',
-        l: 1
-    };
-    else if ((m = program.match(/^(==) +/))) return {
-        t: '==',
-        l: 2
-    };
-    else if ((m = program.match(/^(!=) +/))) return {
-        t: '!=',
-        l: 2
-    };
+    else if ((m = program.match(/^\*/)))
+        currentToken = {
+            t: 'PRODUCT',
+            l: 1
+        };
+    else if ((m = program.match(/^(=) +/)))
+        currentToken = {
+            t: 'EQUAL',
+            l: 1
+        };
+    else if ((m = program.match(/^(==) +/)))
+        currentToken = {
+            t: '==',
+            l: 2
+        };
+    else if ((m = program.match(/^(!=) +/)))
+        currentToken = {
+            t: '!=',
+            l: 2
+        };
     else if ((m = program.match(/^(WHILE)/)))
-        return {
+        currentToken = {
             t: 'WHILE',
             l: 5
         };
     else if ((m = program.match(/^(FUNCTION)/)))
-        return {
+        currentToken = {
             t: 'FUNCTION',
             l: 8
         };
-    else if ((m = program.match(/^(CALL)/))) return {
-        t: 'CALL',
-        l: 4
-    };
+    else if ((m = program.match(/^(CALL)/)))
+        currentToken = {
+            t: 'CALL',
+            l: 4
+        };
     else if ((m = program.match(/^(RETURN)/)))
-        return {
+        currentToken = {
             t: 'RETURN',
             l: 6
         };
-    else if ((m = program.match(/^(IF)/))) return {
-        t: 'IF',
-        l: 2
-    };
-    else if ((m = program.match(/^(ELSE)/))) return {
-        t: 'ELSE',
-        l: 4
-    };
-    else if ((m = program.match(/^(\{)/))) return {
-        t: '{',
-        l: 1
-    };
-    else if ((m = program.match(/^(\})/))) return {
-        t: '}',
-        l: 1
-    };
-    else if ((m = program.match(/^(\()/))) return {
-        t: '(',
-        l: 1
-    };
-    else if ((m = program.match(/^(\))/))) return {
-        t: ')',
-        l: 1
-    };
-    else if ((m = program.match(/^(;)/))) return {
-        t: ';',
-        l: 1
-    };
-    else if ((m = program.match(/^(,)/))) return {
-        t: ',',
-        l: 1
-    };
+    else if ((m = program.match(/^(IF)/)))
+        currentToken = {
+            t: 'IF',
+            l: 2
+        };
+    else if ((m = program.match(/^(ELSE)/)))
+        currentToken = {
+            t: 'ELSE',
+            l: 4
+        };
+    else if ((m = program.match(/^(\{)/)))
+        currentToken = {
+            t: '{',
+            l: 1
+        };
+    else if ((m = program.match(/^(\})/)))
+        currentToken = {
+            t: '}',
+            l: 1
+        };
+    else if ((m = program.match(/^(\()/)))
+        currentToken = {
+            t: '(',
+            l: 1
+        };
+    else if ((m = program.match(/^(\))/)))
+        currentToken = {
+            t: ')',
+            l: 1
+        };
+    else if ((m = program.match(/^(;)/)))
+        currentToken = {
+            t: ';',
+            l: 1
+        };
+    else if ((m = program.match(/^(,)/)))
+        currentToken = {
+            t: ',',
+            l: 1
+        };
     else if ((m = program.match(/^([a-z]+)/)))
-        return {
+        currentToken = {
             t: 'NAME',
             v: m[1],
             l: m[1].length
         };
-    else if (program == '') return {
-        t: 'END',
-        l: 0
-    };
-    else throw `Unexpected token at ${program}`;
-
-    // console.log(ret,'<',currentToken);
+    else if (program == '')
+        currentToken = {
+            t: 'END',
+            l: 0
+        };
+    else
+        throw `Unexpected character at ${program}`;
 
     return ret;
 }
