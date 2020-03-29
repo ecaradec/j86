@@ -12,7 +12,7 @@ function psiToIRTransform(n) {
         // the remaining are the value to select
         // each value know in src, from which block it was know
         for (var i in phi.r) {
-            const ass = n.parents[i].assembly;
+            const ass = n.predecessors[i].assembly;
             let lastJump;
             let lastCond;
 
@@ -27,7 +27,7 @@ function psiToIRTransform(n) {
                 }
             }
 
-            n.parents[i].emit({
+            n.predecessors[i].emit({
                 op: '=',
                 w: {
                     t: 'VAR',
@@ -47,8 +47,8 @@ function psiToIRTransform(n) {
         }
     }
     delete n.phis;
-    for (let i in n.children) {
-        psiToIRTransform(n.children[i]);
+    for (const child of n.successors) {
+        psiToIRTransform(child);
     }
 }
 

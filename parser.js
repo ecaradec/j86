@@ -7,29 +7,29 @@ let {
 let blockId = 0;
 const blockList = [];
 
-function Block(parents) {
+function Block(predecessors) {
     blockList.push(this);
 
     this.assembly = [];
-    this.children = [];
-    this.parents = [];
+    this.successors = [];
+    this.predecessors = [];
     this.variables = {};
     this.phis = {};
     this.name = `block_${blockId}`;
 
-    if (parents.length > 0) {
-        this.func = parents[0].func;
+    if (predecessors.length > 0) {
+        this.func = predecessors[0].func;
     }
     blockId++;
 
-    for (const i in parents) {
-        parents[i].children.push(this);
-        this.parents.push(parents[i]);
+    for (const p of predecessors) {
+        p.successors.push(this);
+        this.predecessors.push(p);
     }
 
     this.addParent = (p) => {
-        this.parents.push(p);
-        p.children.push(this);
+        this.predecessors.push(p);
+        p.predecessors.push(this);
         this.func = p.func;
     };
 
@@ -38,20 +38,6 @@ function Block(parents) {
         if (data == undefined) data = {};
         this.assembly.push(data);
         return this.assembly.length - 1;
-    };
-
-    this.print = () => {
-        console.log(
-            `# ${this.name}`,
-            this.children.map((x) => x.name),
-        );
-        for (let i = 0; i < this.assembly.length; i++) {
-            const ins = {
-                ...this.assembly[i]
-            };
-
-            console.log(` ${JSON.stringify(ins)}`);
-        }
     };
 }
 
@@ -414,14 +400,10 @@ function parseProgram() {
     return start;
 }
 
-function Parser() {
-    this.build = (p) => {
+module.exports = {
+    build: (p) => {
         tokenize(p);
         eatToken('START');
         return parseProgram();
-    };
-}
-
-const parser = new Parser();
-
-module.exports = parser;
+    }
+};

@@ -1,7 +1,7 @@
 function printAssembly(b) {
     function getLastIns(n) {
         if (n.assembly.length > 0) return n.assembly[n.assembly.length - 1];
-        return getLastIns(n.parents[0]);
+        return getLastIns(n.predecessors[0]);
     }
 
     function getPrevIns(n) {
@@ -9,16 +9,14 @@ function printAssembly(b) {
         // should really check on all path, but it's enough for now
         // as the function is only used to prevent double return.
         // it can still happens if doing return on booth path of an if/else
-        return getLastIns(n.parents[0]);
+        return getLastIns(n.predecessors[0]);
     }
 
     function printIns() {
         arguments[0] = `    ${arguments[0]}`;
         console.log.apply({}, arguments);
     }
-    for (var i = 0; i < b.assembly.length; i++) {
-        const ins = b.assembly[i];
-
+    for (const ins of b.assembly) {
         let trueCond, falseCond;
 
         if (ins.op == '*') {
@@ -104,8 +102,8 @@ function printAssemblyRec(b) {
     b.visited = printAssemblyRec;
     console.log(`${b.name}:`);
     printAssembly(b);
-    for (const i in b.children) {
-        printAssemblyRec(b.children[i]);
+    for (const s of b.successors) {
+        printAssemblyRec(s);
     }
 }
 module.exports = printAssemblyRec;

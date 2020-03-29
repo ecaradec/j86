@@ -76,11 +76,10 @@ function assignReg() {
 
     // creates as many registers as there is variables, we'll try to use as few as possible
     // stack variables can be reused just the same as register
-    // var availReg = {};
     let k = 1;
     for (let i in nodes) {
         if (
-            k < 3 // availReg['r'+k] = {t: 'REG', k: 'r'+k, v: 'r'+k};
+            k < 3 // x86 has 3 available registers
         );
         else {
             availReg[`s${k}`] = {
@@ -92,7 +91,7 @@ function assignReg() {
         }
         k++;
     }
-    // var availReg = {'EBX':true, 'ECX':true, 'S0': true, 'S1': true};
+
     for (let i in dropped.connections) {
         const n = dropped.connections[i];
         delete availReg[nodes[n].reg.k];
@@ -110,8 +109,8 @@ function assignReg() {
 }
 
 function addFullyLinkedNodes(keys) {
-    for (let ii = 0; ii < keys.length; ii++) {
-        addNode(keys[ii]);
+    for (const k of keys) {
+        addNode(k);
     }
     for (let ii = 0; ii < keys.length; ii++) {
         for (let jj = 0; jj < keys.length; jj++) {
@@ -126,9 +125,9 @@ function buildGraph(n) {
     n.visited = 'graph';
 
     let activeNodes = {};
-    for (var i in n.children) {
+    for (var i in n.successors) {
         activeNodes = {
-            ...buildGraph(n.children[i])
+            ...buildGraph(n.successors[i])
         };
     }
 
@@ -175,18 +174,16 @@ function replaceVars(n, registers) {
     n.visited = 'replaceVars';
 
     if (n.func) {
-        for (var i in registers) {
-            if (registers[i].t == 'VAR')
-                n.func.varCount = max(n.func.varCount, registers[i].index + 1);
-            if (registers[i].t == 'REG')
-                n.func.usedRegisters[registers[i].v] = true;
+        for (let reg of Object.values(registers)) {
+            if (reg.t == 'VAR')
+                n.func.varCount = max(n.func.varCount, reg.index + 1);
+            if (reg.t == 'REG')
+                n.func.usedRegisters[reg.v] = true;
         }
     }
 
     const assembly = [];
-    for (let ii = 0; ii < n.assembly.length; ii++) {
-        const ins = n.assembly[ii];
-
+    for (const ins of n.assembly) {
         if (ins.r1 && ins.r1.t == 'VAR') {
             ins.r1 = registers[ins.r1.v];
         }
@@ -207,8 +204,8 @@ function replaceVars(n, registers) {
     }
     n.assembly = assembly;
 
-    for (let i in n.children) {
-        replaceVars(n.children[i], registers);
+    for (const s of n.successors) {
+        replaceVars(s, registers);
     }
 }
 

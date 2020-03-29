@@ -11,13 +11,13 @@ function getVariable(n, v) {
     }
 
     // we don't know variable and there is no other node => fail
-    if (n.parents.length == 0) {
+    if (n.predecessors.length == 0) {
         // return v;
         throw `Cant find variable ${v.v}`;
     }
 
     // we have only one parent, don't add phi, ask parent
-    if (n.parents.length == 1) return getVariable(n.parents[0], v);
+    if (n.predecessors.length == 1) return getVariable(n.predecessors[0], v);
 
     // more than one predecessor, add a phi function if none was defined yet => this is our new variable
     // we'll fix the list of source variable latter
@@ -28,10 +28,10 @@ function getVariable(n, v) {
 
     // If previous block is solved, query result
     // This ensure, we are not creating phi locally without propagating it
-    for (const i in n.parents) {
+    for (const i in n.predecessors) {
         let x = null;
-        if (n.parents[i].done) {
-            x = getVariable(n.parents[i], v).v;
+        if (n.predecessors[i].done) {
+            x = getVariable(n.predecessors[i], v).v;
         }
         n.phis[v.v].r[i] = x;
     }
@@ -47,9 +47,7 @@ function addVariable(n, v) {
 }
 
 function transform(n) {
-    for (const i in n.assembly) {
-        const ins = n.assembly[i];
-
+    for (const ins of n.assembly) {
         if (ins.r1 && ins.r1.t == 'VAR') ins.r1 = getVariable(n, ins.r1);
         if (ins.r2 && ins.r2.t == 'VAR') ins.r2 = getVariable(n, ins.r2);
         if (ins.w && ins.w.t == 'VAR') ins.w = addVariable(n, ins.w);
@@ -78,9 +76,10 @@ module.exports = function (n) {
     // Fix incomplete phis (happens with loops )
     bfs(n, n => {
         for (const j in n.phis) {
-            for (const k in n.parents) {
-                if (n.phis[j].r[k] == null) {
-                    n.phis[j].r[k] = getVariable(n.parents[k], {
+            const phi = n.phis[j];
+            for (const k in n.predecessors) {
+                if (phi.r[k] == null) {
+                    phi.r[k] = getVariable(n.predecessors[k], {
                         t: 'VAR',
                         v: j,
                     }).v;

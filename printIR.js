@@ -1,7 +1,6 @@
 function toStringIR(b) {
     const text = [];
-    for (let i = 0; i < b.assembly.length; i++) {
-        const ins = b.assembly[i];
+    for (let ins of b.assembly) {
         // text.push(JSON.stringify(ins));
         if (ins.op == '*') {
             text.push(`${ins.w.v} := ${ins.r1.v} * ${ins.r2.v}`);
@@ -51,8 +50,8 @@ function printIR(b) {
     }
     if (b.assembly.length > 0) console.log(toStringIR(b).join('\n'));
 
-    for (const i in b.children) {
-        printIR(b.children[i]);
+    for (const child of b.successors) {
+        printIR(child);
     }
     // console.log("");
 }
