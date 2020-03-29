@@ -1,9 +1,9 @@
-var parser = require('./parser');
-var ssaTransform = require('./ssaTransform');
-var phiToIRTransform = require('./phiToIRTransform');
-var registersTransform = require('./registerTransform');
-var printIR = require('./printIR');
-var printAssembly = require('./printAssembly');
+const parser = require('./parser');
+const ssaTransform = require('./ssaTransform');
+const phiToIRTransform = require('./phiToIRTransform');
+const registersTransform = require('./registerTransform');
+const printIR = require('./printIR');
+const printAssembly = require('./printAssembly');
 
 //
 // Print IR
@@ -25,19 +25,19 @@ var program = [
     'ok();',
     'a = a + 1;',
     '}',
-    //"b = 1;",
-    //"a = 1;",
-    //"WHILE(a == 10) { a = a + 1; }",
-    //"IF(a == 1) { a = 2; } ELSE { a = 1;  }",
-    //"IF(a == 1) { a = 2; }",
-    //"WHILE(a == 10) { a = a + 1; }",
-    //"IF(a == 1) { a = 2; } ELSE { a = 1;  }",
-    //"IF(a == 1) { a = 2; }",
-    //"a = b;",
+    // "b = 1;",
+    // "a = 1;",
+    // "WHILE(a == 10) { a = a + 1; }",
+    // "IF(a == 1) { a = 2; } ELSE { a = 1;  }",
+    // "IF(a == 1) { a = 2; }",
+    // "WHILE(a == 10) { a = a + 1; }",
+    // "IF(a == 1) { a = 2; } ELSE { a = 1;  }",
+    // "IF(a == 1) { a = 2; }",
+    // "a = b;",
     '}',
     '',
 ].join('\n');
-var program = parser.build(program);
+program = parser.build(program);
 printIR(program);
 
 //
@@ -111,7 +111,7 @@ console.log('    ret');
 console.log();
 
 console.log('section .data');
-console.log("    _ok db	'ok',0xd, 0xa");
+console.log('    _ok db	\'ok\',0xd, 0xa');
 console.log('    _oklen equ 3');
-console.log("    _nok db	'nok',0xd, 0xa");
+console.log('    _nok db	\'nok\',0xd, 0xa');
 console.log('    _noklen equ 4');

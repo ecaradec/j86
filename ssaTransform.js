@@ -1,4 +1,4 @@
-var writeIndex = {};
+const writeIndex = {};
 
 function getVariable(n, v) {
     // was the variable found in the block
@@ -11,9 +11,10 @@ function getVariable(n, v) {
     }
 
     // we don't know variable and there is no other node => fail
-    if (n.parents.length == 0)
-        //return v;
-        throw 'Cant find variable ' + v.v;
+    if (n.parents.length == 0) {
+        // return v;
+        throw `Cant find variable ${v.v}`;
+    }
 
     // we have only one parent, don't add phi, ask parent
     if (n.parents.length == 1) return getVariable(n.parents[0], v);
@@ -27,8 +28,8 @@ function getVariable(n, v) {
 
     // If previous block is solved, query result
     // This ensure, we are not creating phi locally without propagating it
-    for (var i in n.parents) {
-        var x = null;
+    for (const i in n.parents) {
+        let x = null;
         if (n.parents[i].done) {
             x = getVariable(n.parents[i], v).v;
         }
@@ -41,13 +42,13 @@ function getVariable(n, v) {
 
 function addVariable(n, v) {
     writeIndex[v.v] = writeIndex[v.v] + 1 || 0;
-    n.variables[v.v] = { t: 'VAR', v: v.v + '_' + writeIndex[v.v] };
+    n.variables[v.v] = { t: 'VAR', v: `${v.v}_${writeIndex[v.v]}` };
     return n.variables[v.v];
 }
 
 function transform(n) {
-    for (var i in n.assembly) {
-        var ins = n.assembly[i];
+    for (const i in n.assembly) {
+        const ins = n.assembly[i];
 
         if (ins.r1 && ins.r1.t == 'VAR') ins.r1 = getVariable(n, ins.r1);
         if (ins.r2 && ins.r2.t == 'VAR') ins.r2 = getVariable(n, ins.r2);
@@ -58,14 +59,14 @@ function transform(n) {
 
 // process blocks
 function bfs(n, f) {
-    var stack = [];
+    const stack = [];
     stack.push(n);
-    var c;
+    let c;
     while ((c = stack.shift())) {
         if (c.visited == f) continue;
         c.visited = f;
         f(c);
-        for (var i in c.children) {
+        for (const i in c.children) {
             stack.push(c.children[i]);
         }
     }
@@ -75,20 +76,21 @@ module.exports = function (n) {
     bfs(n, transform);
 
     // Fix incomplete phis (happens with loops )
-    bfs(n, function (n) {
-        for (var j in n.phis) {
-            for (var k in n.parents) {
-                if (n.phis[j].r[k] == null)
+    bfs(n, n => {
+        for (const j in n.phis) {
+            for (const k in n.parents) {
+                if (n.phis[j].r[k] == null) {
                     n.phis[j].r[k] = getVariable(n.parents[k], {
                         t: 'VAR',
                         v: j,
                     }).v;
+                }
             }
         }
     });
 
-    /*bfs(n0, function(n) {
+    /* bfs(n0, function(n) {
         console.log(n.name+'.phis', JSON.stringify(n.phis));
         console.log(n.name+'.ass', JSON.stringify(n.assembly));
-    });*/
+    }); */
 };
