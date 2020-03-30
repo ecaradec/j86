@@ -6,11 +6,11 @@
 *   [x] spill variable handling (variable not replaced by registers are spill variable possibly ) ?
 *   [x] recycle spill variable
 *   [x] allows referencing a parameter
-*   [ ] let functions returns arguments
-*   [ ] save and restore registers in callee
-*   [ ] allocate space on stack for local variables
-*   [ ] support of string
-*   [ ] support of printing
-*   [ ] support of global variables ?
+*   [x] save and restore registers in callee
+*   [x] allocate space on stack for local variables
+*   [x] support of string
+*   [x] support of printing
+*   [x] support of global variables ?
+*   [x] output to NASM format ?
+*   [ ] let functions returns values
 *   [ ] support of structures
-*   [ ] output to NASM format ?

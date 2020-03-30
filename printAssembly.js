@@ -105,4 +105,69 @@ function printAssemblyRec(b) {
         printAssemblyRec(s);
     }
 }
-module.exports = printAssemblyRec;
+
+module.exports = function (block, strings) {
+    console.log('section .text');
+    console.log('    global _start');
+
+    printAssemblyRec(block);
+
+    console.log(`
+_start:
+    call main
+    mov eax, 1
+    mov ebx, 0
+    int 0x80
+
+strlen:
+    push ebp
+    mov ebp, esp
+    push ebx
+    push ecx
+    push edx
+    
+    mov edi, [ebp+8]
+    sub ecx, ecx
+    sub al, al
+    not ecx
+    cld
+    repne scasb
+    not ecx
+    dec ecx
+    mov eax, ecx
+    
+    pop edx
+    pop ecx
+    pop ebx
+    pop ebp
+    ret
+
+print:
+    push ebp
+    mov ebp, esp
+    push ebx
+    push ecx
+    push edx
+    
+    push dword [ebp+8]
+    call strlen
+    add esp, 4
+    
+    mov     edx, eax
+    mov     ecx, dword [ebp+8]
+    mov     ebx, 1
+    mov     eax, 4
+    int     0x80
+    
+    pop edx
+    pop ecx
+    pop ebx
+    pop ebp
+    ret
+
+section .data`);
+
+    for (let s in strings) {
+        console.log(`    ${s} db	 '${strings[s]}', 0`);
+    }
+};

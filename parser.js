@@ -108,6 +108,28 @@ function parseSum(b) {
     return b;
 }
 
+let stringIndex = 0;
+let strings = [];
+
+// tmp = {t:'VAR', v:'str1'};
+// 
+
+function parseValue(b) {
+    if (getToken().t == 'STRING') {
+        var tk = eatToken('STRING');
+        stringIndex++;
+        strings[`str${stringIndex}`] = tk.v;
+        let v = {
+            t: 'GLOBALVAR',
+            v: `str${stringIndex}`
+        };
+        blockList[0].variables[`str${stringIndex}`] = v;
+        pushVStack(v);
+        return b;
+    }
+    return parseSum(b);
+}
+
 function parseProduct(b) {
     b = parseTerm(b);
     if (getToken().t == 'PRODUCT') {
@@ -131,14 +153,10 @@ function parseProduct(b) {
     return b;
 }
 
-let variables = [];
-
 function parseAssignment(dst, b) {
-    variables[dst.v] = true;
     eatToken('EQUAL');
-    b = parseSum(b);
+    b = parseValue(b);
     const src = popVStack();
-
     b.emit({
         op: '=',
         w: {
@@ -273,6 +291,7 @@ function parseStatement(b) {
 const functionDeclarations = {
     ok: 0,
     nok: 0,
+    print: 1,
 };
 
 function parseFunction(b) {
@@ -350,19 +369,19 @@ function parseFunctionCall(name, b) {
     }
     let argumentsCount = 0;
     if (getToken().t != ')') {
-        parseSum();
+        b = parseValue(b);
         var r1 = popVStack();
         b.emit({
-            op: 'PUSH',
+            op: 'push',
             r1
         });
         argumentsCount++;
         while (getToken().t == ',') {
             eatToken(',');
-            parseSum();
+            b = parseValue(b);
             const r1 = popVStack();
             b.emit({
-                op: 'PUSH',
+                op: 'push',
                 r1
             });
             argumentsCount++;
@@ -400,10 +419,13 @@ function parseProgram() {
     return start;
 }
 
+let ast;
 module.exports = {
     build: (p) => {
         tokenize(p);
         eatToken('START');
-        return parseProgram();
-    }
+        ast = parseProgram();
+    },
+    getStrings: () => strings,
+    getAST: () => ast
 };

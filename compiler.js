@@ -25,7 +25,7 @@ const printAssembly = require('./printAssembly');
     '}',
 ].join('\n');*/
 
-let program = [
+/*let program = [
     'FUNCTION main() {',
     'a = 0;',
     'WHILE(a != 10) {',
@@ -34,7 +34,19 @@ let program = [
     '}',
     '}',
     '',
-].join('\n');
+].join('\n');*/
+
+let program = `
+FUNCTION main() {
+a = 1;
+IF( a == 1 ) {
+str = "Hello";
+} ELSE {
+str = "World";
+}
+print(str);
+}
+`;
 
 console.log('* PROGRAM');
 console.log(program);
@@ -43,32 +55,32 @@ console.log(program);
 // Print IR
 //
 console.log('* IR');
-program = parser.build(program);
-printIR(program);
+parser.build(program);
+printIR(parser.getAST());
 console.log('');
 
 //
 // Print SSA-IR
 //
 console.log('* SSA-IR');
-ssaTransform(program);
-printIR(program);
+ssaTransform(parser.getAST());
+printIR(parser.getAST());
 console.log('');
 
 //
 // Print PHI RESOLVED SSA IR
 //
 console.log('* PSIRESOLVED-SSA-IR');
-phiToIRTransform(program);
-printIR(program);
+phiToIRTransform(parser.getAST());
+printIR(parser.getAST());
 console.log('');
 
 //
 // IR WITH REGISTERS
 //
 console.log('* IR WITH REGISTERS');
-registersTransform(program);
-printIR(program);
+registersTransform(parser.getAST());
+printIR(parser.getAST());
 console.log('');
 
 //
@@ -76,49 +88,5 @@ console.log('');
 //
 // EAX is only used for temporaries
 console.log('* Assembly');
-console.log('section .text');
-console.log('    global _start');
-printAssembly(program);
-console.log('_start:');
-console.log('    call main');
-console.log('    mov eax, 1');
-console.log('    int 0x80'); // sys_exit(1)
-console.log();
-
-// instrinsic function that print ok
-console.log('ok:');
-console.log('    push ebx');
-console.log('    push ecx');
-console.log('    push edx');
-console.log('    mov edx, _oklen');
-console.log('    mov ecx, _ok');
-console.log('    mov ebx, 1');
-console.log('    mov eax, 4');
-console.log('    int 0x80');
-console.log('    pop edx');
-console.log('    pop ecx');
-console.log('    pop ebx');
-console.log('    ret');
-console.log();
-
-// instrinsic function that print nok
-console.log('nok:');
-console.log('    push ebx');
-console.log('    push ecx');
-console.log('    push edx');
-console.log('    mov edx, _noklen');
-console.log('    mov ecx, _nok');
-console.log('    mov ebx, 1');
-console.log('    mov eax, 4');
-console.log('    int 0x80');
-console.log('    pop edx');
-console.log('    pop ecx');
-console.log('    pop ebx');
-console.log('    ret');
-console.log();
-
-console.log('section .data');
-console.log('    _ok db	\'ok\',0xd, 0xa');
-console.log('    _oklen equ 3');
-console.log('    _nok db	\'nok\',0xd, 0xa');
-console.log('    _noklen equ 4');
+printAssembly(parser.getAST(), parser.getStrings());
+console.log('');

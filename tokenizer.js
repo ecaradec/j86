@@ -117,6 +117,12 @@ function eatToken(t) {
             v: m[1],
             l: m[1].length
         };
+    else if ((m = program.match(/^("(.*)")/)))
+        currentToken = {
+            t: 'STRING',
+            v: m[2],
+            l: m[1].length
+        };
     else if (program == '')
         currentToken = {
             t: 'END',
