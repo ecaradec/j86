@@ -16,9 +16,8 @@ function printAssembly(b) {
         arguments[0] = `    ${arguments[0]}`;
         console.log.apply({}, arguments);
     }
+    let trueCond, falseCond;
     for (const ins of b.ilcode) {
-        let trueCond, falseCond;
-
         if (ins.op == '*') {
             printIns(`mov eax, ${ins.r1.v}`);
             printIns(`mul eax, ${ins.r2.v}`);

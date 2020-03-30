@@ -27,8 +27,8 @@ function Block(predecessors) {
         this.predecessors.push(p);
     }
 
-    this.addParent = (p) => {
-        this.predecessors.push(p);
+    this.addPredecessor = (p) => {
+        this.successors.push(p);
         p.predecessors.push(this);
         this.func = p.func;
     };
@@ -221,29 +221,29 @@ function parseIfStatement(b) {
 
 function parseWhileStatement(b) {
     const startBlock = b;
-    let condBlock = new Block([startBlock]);
-    condBlock.addParent(condBlock);
-    const endBlock = new Block([condBlock]);
+    let whileBlock = new Block([startBlock]);
+    whileBlock.addPredecessor(whileBlock);
+    const endBlock = new Block([whileBlock]);
 
     eatToken('WHILE');
     eatToken('(');
-    b = parseCondStatement(condBlock);
+    b = parseCondStatement(whileBlock);
     const tmp = {
         t: 'INTRINSIC',
         v: '$cond'
     };
-    condBlock.emit({
+    whileBlock.emit({
         op: 'ifFalse',
         r1: tmp,
         label: endBlock.name
     }); // exit if condition is false
     eatToken(')');
     eatToken('{');
-    condBlock = parseStatementList(condBlock);
+    whileBlock = parseStatementList(whileBlock);
     eatToken('}');
-    condBlock.emit({
+    whileBlock.emit({
         op: 'jmp',
-        label: condBlock.name
+        label: whileBlock.name
     });
 
     return endBlock;

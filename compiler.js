@@ -5,40 +5,47 @@ const registersTransform = require('./registerTransform');
 const printIR = require('./printIR');
 const printAssembly = require('./printAssembly');
 
-//
-// Print IR
-//
-console.log('* IR');
-var program = [
-    // "FUNCTION test(a,b) {",
-    // "a = a;",
-    // "b = b;",
-    // "c = 1;",
-    // "d = 1;",
-    // "e = 1;",
-    // "f = a+b+c+d+e;",
-    // "RETURN b;",
-    // "}",
+/*let program = [
+    "FUNCTION main() {",
+    "a = a;",
+    "b = b;",
+    "c = 1;",
+    "d = 1;",
+    "e = 1;",
+    "f = a+b+c+d+e;",
+    "RETURN b;",
+    "}",
+]*/
+
+/*let program = [
+    'FUNCTION main() {',
+    'a = 1;',
+    'IF(a == 1) { a = 2; } ELSE { a = 1;  }',
+    'b = a;',
+    '}',
+].join('\n');*/
+
+let program = [
     'FUNCTION main() {',
     'a = 0;',
     'WHILE(a != 10) {',
     'ok();',
     'a = a + 1;',
     '}',
-    // "b = 1;",
-    // "a = 1;",
-    // "WHILE(a == 10) { a = a + 1; }",
-    // "IF(a == 1) { a = 2; } ELSE { a = 1;  }",
-    // "IF(a == 1) { a = 2; }",
-    // "WHILE(a == 10) { a = a + 1; }",
-    // "IF(a == 1) { a = 2; } ELSE { a = 1;  }",
-    // "IF(a == 1) { a = 2; }",
-    // "a = b;",
     '}',
     '',
 ].join('\n');
+
+console.log('* PROGRAM');
+console.log(program);
+
+//
+// Print IR
+//
+console.log('* IR');
 program = parser.build(program);
 printIR(program);
+console.log('');
 
 //
 // Print SSA-IR
