@@ -1,3 +1,5 @@
+'use strict';
+
 const parser = require('./parser');
 const ssaTransform = require('./ssaTransform');
 const phiToIRTransform = require('./phiToIRTransform');

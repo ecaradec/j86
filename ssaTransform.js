@@ -1,3 +1,42 @@
+'use strict';
+//
+// This function transform standard code to SSA form.
+//
+// SSA form assign a new variable, each time a variable is assigned.
+// This allows for various optimisation and in this case make register allocation more 
+// performant. 
+//
+// The principle is to transform :
+// a = 1;
+// a = 2;
+// b = a;
+// into
+// a_1 = 1;
+// a_2 = 2;
+// b_1 = a_2;
+// This makes immediatly apparent that a_1 is not needed and can be removed.
+//
+// The handling of branches is trickier, like if, while because you may end up in a scenario like this :
+// a = 0;
+// if(?) { a = 1; }
+// b = a;
+// will be translated to
+// a_1 = 0;
+// if(?) { a_2 = 1; }
+// b = a?;
+//
+// SSA resolve this by adding PHI functions
+//
+// In the case of register allocation, it also allows to assign different registers to a_1 and a_2
+// allowing more assignment possibilities, and reducing the necessity to store variables in memory.
+//
+// The most known algorithm for transforming code to SSA is:
+// https://www.cs.utexas.edu/~pingali/CS380C/2010/papers/ssaCytron.pdf
+// 
+//
+// The algorithm used here is simpler:
+// https://pp.info.uni-karlsruhe.de/uploads/publikationen/braun13cc.pdf
+
 const writeIndex = {};
 
 function getVariable(n, v) {
@@ -87,9 +126,4 @@ module.exports = function (n) {
             }
         }
     });
-
-    /* bfs(n0, function(n) {
-        console.log(n.name+'.phis', JSON.stringify(n.phis));
-        console.log(n.name+'.ass', JSON.stringify(n.assembly));
-    }); */
 };

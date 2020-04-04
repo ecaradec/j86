@@ -1,3 +1,5 @@
+'use strict';
+
 function toStringIR(b) {
     const text = [];
     for (let ins of b.ilcode) {

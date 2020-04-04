@@ -1,3 +1,5 @@
+'use strict';
+
 function printAssembly(b) {
     function getLastIns(n) {
         if (n.ilcode.length > 0) return n.ilcode[n.ilcode.length - 1];

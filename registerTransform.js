@@ -1,7 +1,13 @@
+'use strict';
 //
-// REGISTER ALLOCATION
+// This transformation assign a reduced number of registers and memory space
+// to variables.
 //
-//
+// Decompose the graph of variable relations on node at a time
+// then build it back and add registers if possible and spill variable on stack
+// when no register is available.
+// It also has for effect that spill variables space are reused if they
+// are not used anywhere else to reduce stack space reservation.
 const vertices = {};
 
 function addVertex(n) {
@@ -47,12 +53,6 @@ function dropVertex(n) {
 }
 
 // Return a variable to register or variable to spill variable using graph coloring
-//
-// Decompose the graph of variable relations on node at a time
-// then build it back and add registers if possible and spill variable on stack
-// when no register is available.
-// It also has for effect that spill variables space are reused if they
-// are not used anywhere else to reduce stack space reservation.
 function findVariableMapping() {
     const d = findLowestConnectedVertex();
     if (d == undefined) return;

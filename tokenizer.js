@@ -1,3 +1,5 @@
+'use strict';
+
 let program = '';
 let currentToken = {
     t: 'START',
