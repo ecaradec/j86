@@ -4,7 +4,7 @@ const parser = require('./parser');
 const ssaTransform = require('./ssaTransform');
 const phiToIRTransform = require('./phiToIRTransform');
 const registersTransform = require('./registerTransform');
-const printIR = require('./printIR');
+const { printIR } = require('./printIR');
 const printAssembly = require('./printAssembly');
 
 /*let program = [

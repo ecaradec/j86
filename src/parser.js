@@ -6,9 +6,6 @@ let {
     eatToken
 } = require('./tokenizer');
 
-let blockId = 0;
-const blockList = [];
-
 function Block(predecessors) {
     blockList.push(this);
 
@@ -42,8 +39,6 @@ function Block(predecessors) {
         return this.ilcode.length - 1;
     };
 }
-
-const vstack = [];
 
 function popVStack() {
     return vstack.pop();
@@ -109,12 +104,6 @@ function parseSum(b) {
 
     return b;
 }
-
-let stringIndex = 0;
-let strings = [];
-
-// tmp = {t:'VAR', v:'str1'};
-// 
 
 function parseValue(b) {
     if (getToken().t == 'STRING') {
@@ -290,12 +279,6 @@ function parseStatement(b) {
     } else throw `Expected IF/WHILE/NAME/FUNCTION or CALL but got ${getToken().t}`;
 }
 
-const functionDeclarations = {
-    ok: 0,
-    nok: 0,
-    print: 1,
-};
-
 function parseFunction(b) {
     eatToken('FUNCTION');
     const name = eatToken('NAME');
@@ -345,8 +328,7 @@ function parseFunction(b) {
     // emit({op:'RET'});
     b.emit({
         op: 'functionEnd',
-        name: functionStartLabel,
-        arguments
+        name: functionStartLabel
     });
 
     return b;
@@ -421,9 +403,28 @@ function parseProgram() {
     return start;
 }
 
+const functionDeclarations = {
+    ok: 0,
+    nok: 0,
+    print: 1,
+};
+
+let blockId = 0;
+let blockList = [];
+
+let stringIndex = 0;
+let strings = [];
+
+const vstack = [];
+
 let ast;
 module.exports = {
     build: (p) => {
+        blockId = 0;
+        blockList = [];
+        stringIndex = 0;
+        strings = [];
+        tmp = 0;
         tokenize(p);
         eatToken('START');
         ast = parseProgram();

@@ -1,0 +1,25 @@
+{
+  "sourceType": "module",
+  "type": "module",
+  "name": "jscompiler",
+  "version": "1.0.0",
+  "description": "-   TODO",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "debug": "node --nolazy --inspect-brk=9229 src/compiler.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ecaradec/jscompiler.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ecaradec/jscompiler/issues"
+  },
+  "homepage": "https://github.com/ecaradec/jscompiler#readme",
+  "devDependencies": {
+    "jest": "^25.2.7"
+  }
+}

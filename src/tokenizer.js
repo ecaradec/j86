@@ -1,11 +1,5 @@
 'use strict';
 
-let program = '';
-let currentToken = {
-    t: 'START',
-    l: 0
-};
-
 function getToken() {
     return currentToken;
 }
@@ -136,8 +130,18 @@ function eatToken(t) {
     return ret;
 }
 
+let program = '';
+let currentToken = {
+    t: 'START',
+    l: 0
+};
+
 function tokenize(p) {
     program = p;
+    currentToken = {
+        t: 'START',
+        l: 0
+    };
 }
 
 module.exports = {

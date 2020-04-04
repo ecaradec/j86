@@ -16,9 +16,9 @@ function toStringIR(b) {
             text.push(`${ins.w.v} := ${ins.r1.v} == ${ins.r2.v}`);
         } else if (ins.op == '!=') {
             text.push(`${ins.w.v} := ${ins.r1.v} != ${ins.r2.v}`);
-        } else if (ins.op == 'PUSH') {
+        } else if (ins.op == 'push') {
             text.push(`push ${ins.r1.v}`);
-        } else if (ins.op == 'POP') {
+        } else if (ins.op == 'pop') {
             text.push(`pop ${ins.w.v}`);
         } else if (ins.op == 'jmp') {
             text.push(`jmp ${ins.label}`);
@@ -58,4 +58,23 @@ function printIR(b) {
     // console.log("");
 }
 
-module.exports = printIR;
+function toArray(b) {
+    if (b.visited == toArray) return;
+    b.visited = toArray;
+    let results = [];
+    results.push(`${b.name}:`);
+    for (const j in b.phis) {
+        const phi = b.phis[j];
+        results.push(`${phi.w} := psi('${phi.r.join(', ')})`);
+    }
+    if (b.ilcode.length > 0) {
+        Array.prototype.push.apply(results, toStringIR(b));
+    }
+
+    for (const child of b.successors) {
+        Array.prototype.push.apply(results, toArray(child));
+    }
+    return results;
+}
+
+module.exports = { toStringIR, printIR, toArray };
