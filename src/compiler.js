@@ -40,13 +40,13 @@ const printAssembly = require('./printAssembly');
 
 let program = `
 FUNCTION main() {
-a = 1;
-IF( a == 1 ) {
-str = "Hello";
-} ELSE {
-str = "World";
-}
-print(str);
+    a = 1;
+    IF( a == 1 ) {
+    str = "Hello";
+    } ELSE {
+    str = "World";
+    }
+    print(str);
 }
 `;
 

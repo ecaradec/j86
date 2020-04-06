@@ -10,8 +10,7 @@ function eatToken(t) {
     let ret = currentToken;
 
     program = program.substring(currentToken.l);
-    program = program.replace(/^ */, '');
-    program = program.replace(/^\n/, '');
+    program = program.replace(/^[ \n\t]*/, '');
     // console.log(program);
 
     let m;
@@ -130,11 +129,8 @@ function eatToken(t) {
     return ret;
 }
 
-let program = '';
-let currentToken = {
-    t: 'START',
-    l: 0
-};
+let program;
+let currentToken;
 
 function tokenize(p) {
     program = p;
