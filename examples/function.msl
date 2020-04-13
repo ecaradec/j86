@@ -1,0 +1,7 @@
+FUNCTION test() {
+    RETURN 1;
+}
+
+FUNCTION main() {
+    test();
+}

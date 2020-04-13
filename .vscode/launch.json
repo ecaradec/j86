@@ -23,6 +23,9 @@
             "request": "launch",
             "name": "Launch Program",
             "program": "${workspaceFolder}/src/compiler.js",
+            "args": [
+                "examples/function.msl"
+            ],
             "runtimeArgs": [],
             "skipFiles": [
                 "<node_internals>/**"

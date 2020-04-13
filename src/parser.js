@@ -54,11 +54,17 @@ function parseTerm(b) {
         const v = eatToken('DIGIT');
         pushVStack(v);
     } else if (getToken().t == 'NAME') {
-        const varname = eatToken('NAME');
-        vstack.push({
-            t: 'VAR',
-            v: varname.v
-        });
+        const name = eatToken('NAME');
+        if(getToken().t == '(') {
+            const tmp = {t: 'VAR', v: getTmpVar()};
+            vstack.push(tmp);
+            b = parseFunctionCall(name, b, tmp);
+        } else {
+            vstack.push({
+                t: 'VAR',
+                v: name.v
+            });
+        }
     }
 
     return b;
@@ -156,6 +162,7 @@ function parseAssignment(dst, b) {
         },
         r1: src
     });
+
     eatToken(';');
 
     return b;
@@ -267,8 +274,14 @@ function parseStatement(b) {
     }
     if (getToken().t == 'NAME') {
         const name = eatToken('NAME');
-        if (getToken().t == 'EQUAL') return parseAssignment(name, b);
-        if (getToken().t == '(') return parseFunctionCall(name, b);
+        if (getToken().t == 'EQUAL') {
+            return parseAssignment(name, b);
+        }
+        if (getToken().t == '(') {
+            b = parseFunctionCall(name, b);
+            eatToken(';');
+            return b;
+        }
         throw `Expected = or ( but got ${getToken().t}`;
     } else if (getToken().t == 'FUNCTION') {
         return parseFunction(b);
@@ -375,7 +388,7 @@ function parseFunctionCall(name, b) {
         throw `Function call "${name.v}" doesnt match declared arguments`;
     }
     eatToken(')');
-    eatToken(';');
+
     b.emit({
         op: 'call',
         name: name.v

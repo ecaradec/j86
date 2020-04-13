@@ -155,11 +155,11 @@ print:
     call strlen
     add esp, 4
     
-    mov     edx, eax
-    mov     ecx, dword [ebp+8]
-    mov     ebx, 1
-    mov     eax, 4
-    int     0x80
+    mov edx, eax
+    mov ecx, dword [ebp+8]
+    mov ebx, 1
+    mov eax, 4
+    int 0x80
     
     pop edx
     pop ecx
