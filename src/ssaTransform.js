@@ -81,7 +81,7 @@ function getVariable(n, v) {
 
 function addVariable(n, v) {
     writeIndex[v.v] = writeIndex[v.v] + 1 || 0;
-    n.variables[v.v] = { t: 'VAR', v: `${v.v}_${writeIndex[v.v]}` };
+    n.variables[v.v] = { t: 'VAR', v: `${v.v}_${writeIndex[v.v]}`, mod: v.mod };
     return n.variables[v.v];
 }
 

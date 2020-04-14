@@ -1,37 +1,40 @@
 'use strict';
 
 function toStringIR(b) {
+    const v = (x) => {
+        return (x.mod?x.mod:'')+x.v;
+    };
     const text = [];
     for (let ins of b.ilcode) {
         // text.push(JSON.stringify(ins));
         if (ins.op == '*') {
-            text.push(`${ins.w.v} := ${ins.r1.v} * ${ins.r2.v}`);
+            text.push(`${v(ins.w)} := ${v(ins.r1)} * ${v(ins.r2)}`);
         } else if (ins.op == '+') {
-            text.push(`${ins.w.v} := ${ins.r1.v} + ${ins.r2.v}`);
+            text.push(`${v(ins.w)} := ${v(ins.r1)} + ${v(ins.r2)}`);
         } else if (ins.op == '-') {
-            text.push(`${ins.w.v} := ${ins.r1.v} - ${ins.r2.v}`);
+            text.push(`${v(ins.w)} := ${v(ins.r1)} - ${v(ins.r2)}`);
         } else if (ins.op == '=') {
-            text.push(`${ins.w.v} := ${ins.r1.v}`);
+            text.push(`${v(ins.w)} := ${v(ins.r1)}`);
         } else if (ins.op == '==') {
-            text.push(`${ins.w.v} := ${ins.r1.v} == ${ins.r2.v}`);
+            text.push(`${v(ins.w)} := ${v(ins.r1)} == ${v(ins.r2)}`);
         } else if (ins.op == '!=') {
-            text.push(`${ins.w.v} := ${ins.r1.v} != ${ins.r2.v}`);
+            text.push(`${v(ins.w)} := ${v(ins.r1)} != ${v(ins.r2)}`);
         } else if (ins.op == 'push') {
-            text.push(`push ${ins.r1.v}`);
+            text.push(`push ${v(ins.r1)}`);
         } else if (ins.op == 'pop') {
-            text.push(`pop ${ins.w.v}`);
+            text.push(`pop ${v(ins.w)}`);
         } else if (ins.op == 'jmp') {
             text.push(`jmp ${ins.label}`);
         } else if (ins.op == 'ifTrue') {
-            text.push(`ifTrue ${ins.r1.v}, ${ins.label}`);
+            text.push(`ifTrue ${v(ins.r1)}, ${ins.label}`);
         } else if (ins.op == 'ifFalse') {
-            text.push(`ifFalse ${ins.r1.v}, ${ins.label}`);
+            text.push(`ifFalse ${v(ins.r1)}, ${ins.label}`);
         } else if (ins.op == 'return') {
-            text.push(`return ${ins.r1.v}`);
+            text.push(`return ${v(ins.r1)}`);
         } else if (ins.op == 'call') {
             text.push(`call ${ins.name}`);
         } else if (ins.op == 'functionStart') {
-            text.push(`function ${ins.name}`);
+            text.push(`function ${ins.name}(${Object.keys(ins.args).join(',')})`);
             // console.log('SUB ESP, 12');
         } else if (ins.op == 'functionEnd') {
             text.push('functionEnd');

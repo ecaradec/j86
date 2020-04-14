@@ -5,7 +5,7 @@ function getToken() {
 }
 
 function eatToken(t) {
-    if (currentToken.t != t) throw `Expected ${t} but got ${currentToken.t}`;
+    if (currentToken.t != t) throw `Expected ${t} but got ${currentToken.t} at ${program}`;
 
     let ret = currentToken;
 
@@ -29,6 +29,11 @@ function eatToken(t) {
     else if ((m = program.match(/^\*/)))
         currentToken = {
             t: 'PRODUCT',
+            l: 1
+        };
+    else if ((m = program.match(/^&/)))
+        currentToken = {
+            t: '&',
             l: 1
         };
     else if ((m = program.match(/^(=) +/)))

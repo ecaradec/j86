@@ -45,14 +45,32 @@ function popVStack() {
 }
 
 function pushVStack(v) {
-    delete v.l;
+    // delete v.l;
     vstack.push(v);
 }
 
 function parseTerm(b) {
     if (getToken().t == 'DIGIT') {
         const v = eatToken('DIGIT');
-        pushVStack(v);
+        vstack.push(v);
+    } else if (getToken().t == '&') {
+        eatToken('&');
+        const name = eatToken('NAME');
+        // indicate that we want the address of the variable
+        vstack.push({
+            t: 'VAR',
+            v: name.v,
+            mod: '&'
+        });
+    } else if (getToken().t == 'PRODUCT') {
+        eatToken('PRODUCT');
+        const name = eatToken('NAME');
+        // indicate we want the data at the address
+        vstack.push({
+            t: 'VAR',
+            v: name.v,
+            mod: '*'
+        });
     } else if (getToken().t == 'NAME') {
         const name = eatToken('NAME');
         if(getToken().t == '(') {
@@ -152,17 +170,16 @@ function parseProduct(b) {
 
 function parseAssignment(dst, b) {
     eatToken('EQUAL');
-    b = parseValue(b);
+    b = parseValue(b);       // should be a rvalue
     const src = popVStack();
     b.emit({
         op: '=',
         w: {
             t: 'VAR',
-            v: dst.v
+            v: (dst.mod?dst.mod:'')+dst.v
         },
         r1: src
     });
-
     eatToken(';');
 
     return b;
@@ -272,10 +289,12 @@ function parseStatement(b) {
     if (getToken().t == 'WHILE') {
         return parseWhileStatement(b);
     }
-    if (getToken().t == 'NAME') {
-        const name = eatToken('NAME');
+    if (getToken().t == 'NAME' || getToken().t == 'PRODUCT') {
+        //const name = eatToken('NAME');
+        b = parseValue(b);
+        let dst = vstack.pop();
         if (getToken().t == 'EQUAL') {
-            return parseAssignment(name, b);
+            return parseAssignment(dst, b);
         }
         if (getToken().t == '(') {
             b = parseFunctionCall(name, b);
@@ -302,6 +321,7 @@ function parseFunction(b) {
         name: functionStartLabel,
         varCount: 0,
         usedRegisters: {},
+        args: []
     };
     b.func = f;
     b.emit(f);
@@ -328,6 +348,7 @@ function parseFunction(b) {
             i++;
         }
     }
+    f.args = b.variables;
     b.func.argCount = i;
     functionDeclarations[name.v] = i;
     eatToken(')');
@@ -388,6 +409,13 @@ function parseFunctionCall(name, b) {
         throw `Function call "${name.v}" doesnt match declared arguments`;
     }
     eatToken(')');
+
+    const tmp = getTmpVar();
+    b.emit({t: 'VAR', v:tmp});
+    b.emit({
+        op: 'push',
+        r1: {t: 'VAR', mod: '&', v: tmp}
+    });
 
     b.emit({
         op: 'call',
