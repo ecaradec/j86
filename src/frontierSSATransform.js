@@ -1,4 +1,4 @@
- 
+// recurse first, then push node on backtracking 
 function backOrderTraverse(n) {
     let results = [];
     let visited = {};
@@ -66,12 +66,8 @@ function dominance() {
 // frontier is the ensemble of all node on paths that allow to reach the node
 // starting from it's dominant node
 //
-// for each n in node
-//  if there is more than one predecessor
-//    for each p in predecessors
-//      intialize runner to precessor
-//      mov up from dominant to dominant until I reach the dominant of n
-//      add n to the frontier of runner
+// For each node, find the common dominant of all predecessor and mark all of 
+// them as dominance frontier
 function dominanceFrontier() {
     for(let i in nodes) {
         let b = nodes[i];
@@ -171,27 +167,49 @@ function placePhiFunctions(nodes) {
 // - use current index of variable on read
 // - propagate variable index to successor in phi read correct branch
 // - recurse into children in dominance tree
+function getVarIndex(n, varIndex) {
+    return varIndex[n.v] = varIndex[n.v] !== undefined ? varIndex[n.v] : 0;
+}
 function getVar(n, varIndex) {
-    return {t:'VAR', v:n.v + '_' + varIndex[n.v], mod: n.mod};
+    return {t:'VAR', v:n.v, ssa:n.v + '_' + getVarIndex(n, varIndex), mod: n.mod, preSSA: n.v};
 }
 function isVar(v) {
     return v !== undefined && v.t == 'VAR';
+}
+function getAddress(b, r) {
+    const v = r.preSSA ? r.preSSA : r.v;
+    return b.func.args[v];
 }
 // Traverse the dominance tree, increasing variables index progressively
 function renameBlock(b, varIndex) {
     if(varIndex === undefined) varIndex = {};
 
     // rename each variable in instruction in SSA form
+    let ilcode = [];
     for(let i in b.ilcode) {
         let ins = b.ilcode[i];
+
         if(isVar(ins.w)) {
-            let index = varIndex[ins.w.v];
-            varIndex[ins.w.v] = index !== undefined ? index + 1 : 0; 
+            varIndex[ins.w.v] = getVarIndex(ins.w, varIndex) + 1;
             ins.w = getVar(ins.w, varIndex);
         }
-        if(isVar(ins.r1)) ins.r1 = getVar(ins.r1, varIndex);
-        if(isVar(ins.r2)) ins.r2 = getVar(ins.r2, varIndex);
+        if(isVar(ins.r1)) {
+            const first = getVarIndex(ins.r1, varIndex) === 0;
+            ins.r1 = getVar(ins.r1, varIndex);
+            if(first) {
+                ilcode.push({op: 'load', w: ins.r1, r1: getAddress(b, ins.r1) });
+            }
+        }
+        if(isVar(ins.r2)) {
+            const first = getVarIndex(ins.r2, varIndex) === 0;
+            ins.r2 = getVar(ins.r2, varIndex);
+            if(first) {
+                ilcode.push({op: 'load', w: ins.r2, r1: getAddress(b, ins.r2) });
+            }
+        }
+        ilcode.push(ins);
     }
+    b.ilcode = ilcode;
 
     // initialize the current value for the variable in phi for all successors of the node
     for(let is in b.successors) {
@@ -225,7 +243,7 @@ function renameBlock(b, varIndex) {
 // https://web.stanford.edu/class/archive/cs/cs143/cs143.1128/lectures/17/Slides17.pdf
 //
 // A better algorithm
-// // https://www.cs.colostate.edu/~mstrout/CS553/slides/lecture03.pdf
+// https://www.cs.colostate.edu/~mstrout/CS553/slides/lecture03.pdf
 function buildLiveVariable(n) {
     if (n.visited == buildLiveVariable) return;
     n.visited = buildLiveVariable;
@@ -274,7 +292,6 @@ module.exports = function(ast) {
     nodes = backOrderTraverse(ast).reverse();
 
     for(let i in nodes) {
-        // nodes[i].id = i;
         nodes[i].frontier = {};
         nodes[i].parents = [];
         nodes[i].children = [];
@@ -290,13 +307,6 @@ module.exports = function(ast) {
         n.parents.push(d);
         d.children.push(n);
     }
-
-    // console.log(nodes.map(x=>x.name));
-
-    /*for(let i in nodes) {
-        let name = nodes[i].name;
-        console.log(name, doms[name].name, JSON.stringify(nodes[i].frontier.map(x=>x.name)));
-    }*/
 
     buildLiveVariable(nodes[0]);
 

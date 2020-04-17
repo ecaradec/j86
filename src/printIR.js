@@ -2,7 +2,9 @@
 
 function toStringIR(b) {
     const v = (x) => {
-        return (x.mod?x.mod:'')+x.v;
+        // return JSON.stringify(x);
+        const reg = x.reg ? x.reg+':':'';
+        return reg+(x.ssa?x.ssa:x.v);
     };
     const text = [];
     for (let ins of b.ilcode) {
@@ -15,6 +17,8 @@ function toStringIR(b) {
             text.push(`${v(ins.w)} := ${v(ins.r1)} - ${v(ins.r2)}`);
         } else if (ins.op == '=') {
             text.push(`${v(ins.w)} := ${v(ins.r1)}`);
+        } else if (ins.op == 'GET_POINTER') {
+            text.push(`${v(ins.w)} := getPtr(${v(ins.r1)})`);
         } else if (ins.op == '==') {
             text.push(`${v(ins.w)} := ${v(ins.r1)} == ${v(ins.r2)}`);
         } else if (ins.op == '!=') {
@@ -30,7 +34,7 @@ function toStringIR(b) {
         } else if (ins.op == 'ifFalse') {
             text.push(`ifFalse ${v(ins.r1)}, ${ins.label}`);
         } else if (ins.op == 'return') {
-            text.push(`return ${v(ins.r1)}`);
+            text.push('return');
         } else if (ins.op == 'call') {
             text.push(`call ${ins.name}`);
         } else if (ins.op == 'functionStart') {
@@ -38,6 +42,10 @@ function toStringIR(b) {
             // console.log('SUB ESP, 12');
         } else if (ins.op == 'functionEnd') {
             text.push('functionEnd');
+        } else if (ins.op == 'load') {
+            text.push(`${v(ins.w)} = load ${v(ins.r1)}`);
+        } else if (ins.op == 'store') {
+            text.push(`store ${v(ins.r1)}, ${v(ins.r2)}`);
         } else {
             text.push(JSON.stringify(ins));
         }

@@ -18,39 +18,63 @@ function printAssembly(b) {
         arguments[0] = `    ${arguments[0]}`;
         console.log.apply({}, arguments);
     }
+
+    const v = x => {
+        //return JSON.stringify(x);
+        //return x.v;
+        if(x.reg) {
+            return `${x.reg}:${x.v}`;
+            //return x.reg; //+':'+x.v;
+        }
+        return x.v;
+    };
+
+    const indirect = x => {
+        // return JSON.stringify(x);
+        if(x.reg) {
+            return `dword ptr [${x.reg}:${x.v}]`;
+        }
+        return `dword ptr [${x.address}:${x.v}]`;
+        //return `dword ptr [${x.address}]`;
+    };
+
     let trueCond, falseCond;
     for (const ins of b.ilcode) {
         if (ins.op == '*') {
-            printIns(`mov eax, ${ins.r1.v}`);
-            printIns(`mul eax, ${ins.r2.v}`);
-            printIns(`mov ${ins.w.v}, eax`);
+            printIns(`mov eax, ${v(ins.r1)}`);
+            printIns(`mul eax, ${v(ins.r2)}`);
+            printIns(`mov ${v(ins.w)}, eax`);
         } else if (ins.op == '+') {
-            printIns(`mov eax, ${ins.r1.v}`);
-            printIns(`add eax, ${ins.r2.v}`);
-            printIns(`mov ${ins.w.v}, eax`);
+            printIns(`mov eax, ${v(ins.r1)}`);
+            printIns(`add eax, ${v(ins.r2)}`);
+            printIns(`mov ${v(ins.w)}, eax`);
         } else if (ins.op == '-') {
-            printIns(`mov eax, ${ins.r1.v}`);
-            printIns(`sub eax, ${ins.r2.v}`);
-            printIns(`mov ${ins.w.v}, eax`);
+            printIns(`mov eax, ${v(ins.r1)}`);
+            printIns(`sub eax, ${v(ins.r2)}`);
+            printIns(`mov ${v(ins.w)}, eax`);
         } else if (ins.op == '=') {
             if (ins.w.v != ins.r1.v) {
-                // should really be done on IR
-                if (
-                    (ins.w.t == 'VAR' || ins.w.t == 'STACKVAR') &&
-                    (ins.r1.t == 'VAR' || ins.r1.t == 'STACKVAR')
-                ) {
-                    printIns(`mov eax, ${ins.r1.v}`);
-                    printIns(`mov ${ins.w.v}, eax`);
+                // if both variable are in memory, use eax to transfer
+                if (ins.w.spill && ins.r1.spill) {
+                    printIns(`mov eax, ${v(ins.r1)}`);
+                    printIns(`mov ${v(ins.w)}, eax`);
                 } else {
-                    printIns(`mov ${ins.w.v}, ${ins.r1.v}`);
+                    printIns(`mov ${v(ins.w)}, ${v(ins.r1)}`);
                 }
             }
+        } else if(ins.op == 'GET_POINTER') {
+            //console.log(JSON.stringify(ins));
+            printIns(`lea ${v(ins.w)}, dword ptr [${ins.r1.address}]`);
+        } else if(ins.op == 'load') {
+            printIns(`mov ${v(ins.w)}, ${indirect(ins.r1)}`);
+        } else if(ins.op == 'store') {
+            printIns(`mov ${indirect(ins.r1)}, ${v(ins.r2)}`);
         } else if (ins.op == '==') {
-            printIns(`cmp ${ins.r1.v}, ${ins.r2.v}`);
+            printIns(`cmp ${v(ins.r1)}, ${v(ins.r2)}`);
             trueCond = 'e';
             falseCond = 'ne';
         } else if (ins.op == '!=') {
-            printIns(`cmp ${ins.r1.v}, ${ins.r2.v}`);
+            printIns(`cmp ${v(ins.r1)}, ${v(ins.r2)}`);
             trueCond = 'ne';
             falseCond = 'e';
         } else if (ins.op === 'ifTrue') {
@@ -58,9 +82,9 @@ function printAssembly(b) {
         } else if (ins.op == 'ifFalse') {
             printIns(`j${falseCond} ${ins.label}`);
         } else if (ins.op == 'push') {
-            printIns(`push ${ins.r1.v}`);
+            printIns(`push ${v(ins.r1)}`);
         } else if (ins.op == 'pop') {
-            printIns(`pop ${ins.w.v}`);
+            printIns(`pop ${v(ins.w)}`);
         } else if (ins.op == 'jmp') {
             printIns(`jmp ${ins.label}`);
         } else if (ins.op == 'call') {
@@ -85,7 +109,7 @@ function printAssembly(b) {
                 printIns('ret', b.func.argCount * 4);
             }
         } else if (ins.op == 'return') {
-            printIns(`mov eax, ${ins.r1.v}`);
+            // printIns(`mov eax, ${ins.r1.v}`);
             let registers = Object.keys(b.func.usedRegisters).reverse();
             for (let r in registers) {
                 printIns('pop', registers[r]);

@@ -12,5 +12,5 @@
 *   [x] support of printing
 *   [x] support of global variables ?
 *   [x] output to NASM format ?
-*   [ ] let functions returns values
+*   [ ] let functions returns values by pointer
 *   [ ] support of structures

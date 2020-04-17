@@ -68,17 +68,23 @@ function findVariableMapping() {
         ebx: {
             t: 'REG',
             k: 'ebx',
-            v: 'ebx'
+            v: 'ebx',
+            address: 'ebp+8',
+            index: 0
         },
         ecx: {
             t: 'REG',
             k: 'ecx',
-            v: 'ecx'
+            v: 'ecx',
+            address: 'ebp+12',
+            index: 1
         },
         edx: {
             t: 'REG',
             k: 'edx',
-            v: 'edx'
+            v: 'edx',
+            address: 'ebp+16',
+            index: 3
         },
     };
 
@@ -88,15 +94,14 @@ function findVariableMapping() {
     let k = 1;
     for (let i in vertices) {
         i;
-        if (
-            k < 3 // availReg['r'+k] = {t: 'REG', k: 'r'+k, v: 'r'+k};
-        );
+        if (k < 3);
         else {
             availableRegisters[`s${k}`] = {
                 t: 'VAR',
                 k: `s${k}`,
-                v: `DWORD [EBP-${4 * (k - 3) + 4}]`,
-                index: k - 3,
+                v: `s${k}`,
+                address: `ebp-${4 * k + 4}`,
+                index: k,
             };
         }
         k++;
@@ -159,7 +164,7 @@ function buildLiveVariableGraph(n) {
         //
         // Ensure a variable is available to write
         if (ins.w && ins.w.t == 'VAR') {
-            liveVariables[ins.w.v] = true;
+            liveVariables[ins.w.ssa] = true;
         }
 
         addFullyLinkedVertices(Object.keys(liveVariables));
@@ -169,15 +174,15 @@ function buildLiveVariableGraph(n) {
         //
         // Propagate read variables backwards / Delete written variable
         if (ins.w && ins.w.t == 'VAR') {
-            delete liveVariables[ins.w.v];
+            delete liveVariables[ins.w.ssa];
         }
 
         if (ins.r1 && ins.r1.t == 'VAR') {
-            liveVariables[ins.r1.v] = true;
+            liveVariables[ins.r1.ssa] = true;
         }
 
         if (ins.r2 && ins.r2.t == 'VAR') {
-            liveVariables[ins.r2.v] = true;
+            liveVariables[ins.r2.ssa] = true;
         }
 
         addFullyLinkedVertices(Object.keys(liveVariables));
@@ -196,10 +201,12 @@ function replaceVariables(n, registers) {
 
     if (n.func) {
         for (var i in registers) {
-            if (registers[i].t == 'VAR')
-                n.func.varCount = max(n.func.varCount, registers[i].index + 1);
+            // always reserve some space for variable in case we need to have a pointer
+            n.func.varCount = max(n.func.varCount, registers[i].index + 1);
             if (registers[i].t == 'REG')
                 n.func.usedRegisters[registers[i].v] = true;
+            else
+                registers[i].spill = true;
         }
     }
 
@@ -208,21 +215,24 @@ function replaceVariables(n, registers) {
         const ins = n.ilcode[ii];
 
         if (ins.r1 && ins.r1.t == 'VAR') {
-            ins.r1 = registers[ins.r1.v];
+            ins.r1.reg = registers[ins.r1.ssa].v;
+            ins.r1.address = registers[ins.r1.ssa].address;
         }
 
         if (ins.r2 && ins.r2.t == 'VAR') {
-            ins.r2 = registers[ins.r2.v];
+            ins.r2.reg = registers[ins.r2.ssa].v;
+            ins.r2.address = registers[ins.r2.ssa].address;
         }
 
         if (ins.w && ins.w.t == 'VAR') {
-            ins.w = registers[ins.w.v];
+            ins.w.reg = registers[ins.w.ssa].v;
+            ins.w.address = registers[ins.w.ssa].address;
         }
 
         // drop instruction that move register to iself
-        if (ins.w != undefined && ins.w.v == ins.r1.v && ins.r2 == undefined) {
-            continue;
-        }
+        // if (ins.op == '=' && ins.w != undefined && ins.w.reg == ins.r1.reg && ins.r2 == undefined) {
+        //     continue;
+        //}
         ilcode.push(ins);
     }
     n.ilcode = ilcode;

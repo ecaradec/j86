@@ -40,13 +40,20 @@ function Block(predecessors) {
     };
 }
 
-function popVStack() {
+function popLHS() {
+    return vstack.pop();
+}
+function popRHS(b) {
     return vstack.pop();
 }
 
 function pushVStack(v) {
     // delete v.l;
     vstack.push(v);
+}
+
+function getAddress(b, r) {
+    return b.func.args[r.v];
 }
 
 function parseTerm(b) {
@@ -57,10 +64,11 @@ function parseTerm(b) {
         eatToken('&');
         const name = eatToken('NAME');
         // indicate that we want the address of the variable
+        const tmp = getTmpVar();
+        b.emit({op: 'GET_POINTER', w: {t: 'VAR', v: tmp}, r1: {t: 'VAR', v: name.v} });
         vstack.push({
             t: 'VAR',
-            v: name.v,
-            mod: '&'
+            v: tmp
         });
     } else if (getToken().t == 'PRODUCT') {
         eatToken('PRODUCT');
@@ -74,9 +82,7 @@ function parseTerm(b) {
     } else if (getToken().t == 'NAME') {
         const name = eatToken('NAME');
         if(getToken().t == '(') {
-            const tmp = {t: 'VAR', v: getTmpVar()};
-            vstack.push(tmp);
-            b = parseFunctionCall(name, b, tmp);
+            b = parseFunctionCall(name, b);
         } else {
             vstack.push({
                 t: 'VAR',
@@ -95,13 +101,13 @@ function getTmpVar() {
 }
 
 function parseSum(b) {
-    parseProduct(b);
+    b = parseProduct(b);
     if (getToken().t == 'SUM') {
         const s = eatToken('SUM');
         b = parseSum(b);
 
-        const op2 = popVStack();
-        const op1 = popVStack();
+        const op2 = popRHS(b);
+        const op1 = popRHS(b);
         const dst = {
             t: 'VAR',
             v: getTmpVar()
@@ -150,8 +156,8 @@ function parseProduct(b) {
     if (getToken().t == 'PRODUCT') {
         eatToken('PRODUCT');
         b = parseProduct(b);
-        const op2 = popVStack();
-        const op1 = popVStack();
+        const op2 = popRHS(b);
+        const op1 = popRHS(b);
         const dst = {
             t: 'VAR',
             v: getTmpVar()
@@ -171,17 +177,16 @@ function parseProduct(b) {
 function parseAssignment(dst, b) {
     eatToken('EQUAL');
     b = parseValue(b);       // should be a rvalue
-    const src = popVStack();
-    b.emit({
-        op: '=',
-        w: {
-            t: 'VAR',
-            v: (dst.mod?dst.mod:'')+dst.v
-        },
-        r1: src
-    });
-    eatToken(';');
-
+    const src = popLHS();
+    if(dst.mod == '*') {
+        b.emit({op: 'store', r1: dst, r2: src});
+    } else {
+        b.emit({
+            op: '=',
+            w: dst,
+            r1: src
+        });
+    }
     return b;
 }
 
@@ -198,8 +203,8 @@ function parseCondStatement(b) {
         throw 'Expected token to be == or !=';
     }
     parseSum(b);
-    const v2 = popVStack();
-    const v1 = popVStack();
+    const v2 = popRHS(b);
+    const v1 = popRHS(b);
     const tmp = {
         t: 'INTRINSIC',
         v: '$cond'
@@ -294,14 +299,9 @@ function parseStatement(b) {
         b = parseValue(b);
         let dst = vstack.pop();
         if (getToken().t == 'EQUAL') {
-            return parseAssignment(dst, b);
+            b = parseAssignment(dst, b);
         }
-        if (getToken().t == '(') {
-            b = parseFunctionCall(name, b);
-            eatToken(';');
-            return b;
-        }
-        throw `Expected = or ( but got ${getToken().t}`;
+        eatToken(';');
     } else if (getToken().t == 'FUNCTION') {
         return parseFunction(b);
     } else if (getToken().t == 'RETURN') {
@@ -309,6 +309,7 @@ function parseStatement(b) {
         parseReturn(b);
         return rBlock;
     } else throw `Expected IF/WHILE/NAME/FUNCTION or CALL but got ${getToken().t}`;
+    return b;
 }
 
 function parseFunction(b) {
@@ -321,36 +322,39 @@ function parseFunction(b) {
         name: functionStartLabel,
         varCount: 0,
         usedRegisters: {},
-        args: []
+        args: {},
     };
     b.func = f;
     b.emit(f);
 
     eatToken('(');
-    b.variables = [];
+    //b.args = {};
     let i = 0;
     if (getToken().t == 'NAME') {
         var n = eatToken('NAME');
-        b.variables[n.v] = {
+        f.args[n.v] = {
             t: 'STACKVAR',
-            v: `[EBP+${4 * i + 8}]`,
+            v: n.v+'.ptr',
+            address: `ebp+${4 * i + 8}`,
             index: i,
         };
         i++;
         while (getToken().t == ',') {
             eatToken(',');
             const n = eatToken('NAME');
-            b.variables[n.v] = {
+            f.args[n.v] = {
                 t: 'STACKVAR',
-                v: `[EBP+${4 * i + 8}]`,
+                v: n.v+'.ptr',
+                address: `ebp+${4 * i + 8}`,
                 index: i,
             };
             i++;
         }
     }
-    f.args = b.variables;
-    b.func.argCount = i;
-    functionDeclarations[name.v] = i;
+    //f.args = b.variables;
+    f.args['_ret'] = {t: 'STACKVAR', v: '_ret.ptr', address: 'ebp+8'};
+    b.func.argCount = i+1;
+    functionDeclarations[name.v] = i+1;
     eatToken(')');
     eatToken('{');
     b = parseStatementList(b);
@@ -371,11 +375,11 @@ function parseFunction(b) {
 function parseReturn(b) {
     eatToken('RETURN');
     b = parseSum(b);
-    const r1 = popVStack();
+    const r1 = popRHS(b);
+    b.emit({op: 'store', r1: {t: 'VAR', v: '_ret', mod: '*'}, r2: r1});
     eatToken(';');
     b.emit({
-        op: 'return',
-        r1
+        op: 'return'
     });
     return b;
 }
@@ -385,10 +389,10 @@ function parseFunctionCall(name, b) {
     if (functionDeclarations[name.v] === undefined) {
         throw `Function ${name.v} doesnt exists`;
     }
-    let argumentsCount = 0;
+    let argumentsCount = 1;
     if (getToken().t != ')') {
         b = parseValue(b);
-        var r1 = popVStack();
+        var r1 = popRHS(b);
         b.emit({
             op: 'push',
             r1
@@ -397,7 +401,7 @@ function parseFunctionCall(name, b) {
         while (getToken().t == ',') {
             eatToken(',');
             b = parseValue(b);
-            const r1 = popVStack();
+            const r1 = popRHS(b);
             b.emit({
                 op: 'push',
                 r1
@@ -411,7 +415,7 @@ function parseFunctionCall(name, b) {
     eatToken(')');
 
     const tmp = getTmpVar();
-    b.emit({t: 'VAR', v:tmp});
+    b.emit({op: '=', w: {t: 'VAR', v:tmp}, r1:{t: 'DIGIT', v:0}});
     b.emit({
         op: 'push',
         r1: {t: 'VAR', mod: '&', v: tmp}
@@ -421,6 +425,8 @@ function parseFunctionCall(name, b) {
         op: 'call',
         name: name.v
     });
+
+    vstack.push({t: 'VAR', v:tmp});
 
     return b;
 }
@@ -447,7 +453,7 @@ function parseProgram() {
 const functionDeclarations = {
     ok: 0,
     nok: 0,
-    print: 1,
+    print: 2,
 };
 
 let blockId = 0;

@@ -24,7 +24,7 @@
             "name": "Launch Program",
             "program": "${workspaceFolder}/src/compiler.js",
             "args": [
-                "examples/pointer.msl"
+                "examples/while.msl"
             ],
             "runtimeArgs": [],
             "skipFiles": [
