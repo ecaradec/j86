@@ -97,7 +97,7 @@ function findVariableMapping() {
         if (k < 3);
         else {
             availableRegisters[`s${k}`] = {
-                t: 'VAR',
+                t: 'REG',
                 k: `s${k}`,
                 v: `s${k}`,
                 address: `ebp-${4 * k + 4}`,
@@ -163,7 +163,7 @@ function buildLiveVariableGraph(n) {
         // after instruction
         //
         // Ensure a variable is available to write
-        if (ins.w && ins.w.t == 'VAR') {
+        if (ins.w && ins.w.t == 'REG') {
             liveVariables[ins.w.ssa] = true;
         }
 
@@ -173,7 +173,7 @@ function buildLiveVariableGraph(n) {
         // before instruction
         //
         // Propagate read variables backwards / Delete written variable
-        if (ins.w && ins.w.t == 'VAR') {
+        if (ins.w && ins.w.t == 'REG') {
             delete liveVariables[ins.w.ssa];
         }
 
@@ -181,7 +181,7 @@ function buildLiveVariableGraph(n) {
             liveVariables[ins.r1.ssa] = true;
         }
 
-        if (ins.r2 && ins.r2.t == 'VAR') {
+        if (ins.r2 && ins.r2.t == 'REG') {
             liveVariables[ins.r2.ssa] = true;
         }
 
@@ -214,17 +214,17 @@ function replaceVariables(n, registers) {
     for (let ii = 0; ii < n.ilcode.length; ii++) {
         const ins = n.ilcode[ii];
 
-        if (ins.r1 && ins.r1.t == 'VAR') {
+        if (ins.r1 && ins.r1.t == 'REG') {
             ins.r1.reg = registers[ins.r1.ssa].v;
             ins.r1.address = registers[ins.r1.ssa].address;
         }
 
-        if (ins.r2 && ins.r2.t == 'VAR') {
+        if (ins.r2 && ins.r2.t == 'REG') {
             ins.r2.reg = registers[ins.r2.ssa].v;
             ins.r2.address = registers[ins.r2.ssa].address;
         }
 
-        if (ins.w && ins.w.t == 'VAR') {
+        if (ins.w && ins.w.t == 'REG') {
             ins.w.reg = registers[ins.w.ssa].v;
             ins.w.address = registers[ins.w.ssa].address;
         }

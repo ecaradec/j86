@@ -3,8 +3,8 @@
 function toStringIR(b) {
     const v = (x) => {
         // return JSON.stringify(x);
-        const reg = x.reg ? x.reg+':':'';
-        return reg+(x.ssa?x.ssa:x.v);
+        const reg = x.reg ? ':'+x.reg:'';
+        return (x.ssa?x.ssa:x.v)+reg;
     };
     const text = [];
     for (let ins of b.ilcode) {
@@ -54,18 +54,21 @@ function toStringIR(b) {
 }
 
 function printIR(b) {
-    if (b.visited == printIR) return;
-    b.visited = printIR;
-    console.log(`${b.name}:`);
-    for (const j in b.phis) {
-        const phi = b.phis[j];
-        console.log(phi.w, ':=', 'psi(', phi.r.join(', '), ')');
-    }
-    if (b.ilcode.length > 0) console.log(toStringIR(b).join('\n'));
+    let f = function() {
+        if (b.visited == f) return;
+        b.visited = f;
+        console.log(`${b.name}:`);
+        for (const j in b.phis) {
+            const phi = b.phis[j];
+            console.log(phi.w, ':=', 'psi(', phi.r.join(', '), ')');
+        }
+        if (b.ilcode.length > 0) console.log(toStringIR(b).join('\n'));
 
-    for (const child of b.successors) {
-        printIR(child);
-    }
+        for (const child of b.successors) {
+            printIR(child);
+        }
+    };
+    return f(b);
     // console.log("");
 }
 

@@ -6,6 +6,8 @@ let {
     eatToken
 } = require('./tokenizer');
 
+const getRegister = require('./register');
+
 function Block(predecessors) {
     blockList.push(this);
 
@@ -53,7 +55,11 @@ function pushVStack(v) {
 }
 
 function getAddress(b, r) {
-    return b.func.args[r.v];
+    if(b.func.variables[r.v])
+        return b.func.variables[r.v];
+    if(b.func.args[r.v])
+        return b.func.args[r.v];
+    throw `Variable ${r.v} doesnt exists`;
 }
 
 function parseTerm(b) {
@@ -64,8 +70,8 @@ function parseTerm(b) {
         eatToken('&');
         const name = eatToken('NAME');
         // indicate that we want the address of the variable
-        const tmp = getTmpVar();
-        b.emit({op: 'GET_POINTER', w: {t: 'VAR', v: tmp}, r1: {t: 'VAR', v: name.v} });
+        const tmp = getRegister();
+        b.emit({op: 'GET_POINTER', w: {t: 'REG', v: tmp}, r1: getAddress(b, name) });
         vstack.push({
             t: 'VAR',
             v: tmp
@@ -94,12 +100,6 @@ function parseTerm(b) {
     return b;
 }
 
-let tmp = 0;
-
-function getTmpVar() {
-    return `tmp${tmp++}`;
-}
-
 function parseSum(b) {
     b = parseProduct(b);
     if (getToken().t == 'SUM') {
@@ -109,8 +109,8 @@ function parseSum(b) {
         const op2 = popRHS(b);
         const op1 = popRHS(b);
         const dst = {
-            t: 'VAR',
-            v: getTmpVar()
+            t: 'REG',
+            v: getRegister()
         };
 
         if (s.v == '+') {
@@ -159,8 +159,8 @@ function parseProduct(b) {
         const op2 = popRHS(b);
         const op1 = popRHS(b);
         const dst = {
-            t: 'VAR',
-            v: getTmpVar()
+            t: 'REG',
+            v: getRegister()
         };
 
         b.emit({
@@ -174,6 +174,11 @@ function parseProduct(b) {
     return b;
 }
 
+function addLocalVariable(b, v) {
+    b.func.variables[v.v] = {v, address: `ebp-${4*b.func.varCount}`};
+    b.func.varCount++;
+}
+
 function parseAssignment(dst, b) {
     eatToken('EQUAL');
     b = parseValue(b);       // should be a rvalue
@@ -181,6 +186,7 @@ function parseAssignment(dst, b) {
     if(dst.mod == '*') {
         b.emit({op: 'store', r1: dst, r2: src});
     } else {
+        addLocalVariable(b, {...dst, t: 'STACKVAR'});
         b.emit({
             op: '=',
             w: dst,
@@ -323,6 +329,7 @@ function parseFunction(b) {
         varCount: 0,
         usedRegisters: {},
         args: {},
+        variables: {}
     };
     b.func = f;
     b.emit(f);
@@ -334,7 +341,7 @@ function parseFunction(b) {
         var n = eatToken('NAME');
         f.args[n.v] = {
             t: 'STACKVAR',
-            v: n.v+'.ptr',
+            v: n.v,
             address: `ebp+${4 * i + 8}`,
             index: i,
         };
@@ -344,7 +351,7 @@ function parseFunction(b) {
             const n = eatToken('NAME');
             f.args[n.v] = {
                 t: 'STACKVAR',
-                v: n.v+'.ptr',
+                v: n.v,
                 address: `ebp+${4 * i + 8}`,
                 index: i,
             };
@@ -352,9 +359,10 @@ function parseFunction(b) {
         }
     }
     //f.args = b.variables;
-    f.args['_ret'] = {t: 'STACKVAR', v: '_ret.ptr', address: 'ebp+8'};
-    b.func.argCount = i+1;
-    functionDeclarations[name.v] = i+1;
+    f.args['_ret'] = {t: 'STACKVAR', v: '_ret', address: `ebp+${4 * i + 8}`};
+    i++;
+    b.func.argCount = i;
+    functionDeclarations[name.v] = i;
     eatToken(')');
     eatToken('{');
     b = parseStatementList(b);
@@ -414,8 +422,8 @@ function parseFunctionCall(name, b) {
     }
     eatToken(')');
 
-    const tmp = getTmpVar();
-    b.emit({op: '=', w: {t: 'VAR', v:tmp}, r1:{t: 'DIGIT', v:0}});
+    const tmp = getRegister();
+    b.emit({op: '=', w: {t: 'REG', v:tmp}, r1:{t: 'DIGIT', v:0}});
     b.emit({
         op: 'push',
         r1: {t: 'VAR', mod: '&', v: tmp}
@@ -471,7 +479,6 @@ module.exports = {
         blockList = [];
         stringIndex = 0;
         strings = [];
-        tmp = 0;
         tokenize(p);
         eatToken('START');
         ast = parseProgram();
