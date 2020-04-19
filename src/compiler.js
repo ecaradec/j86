@@ -37,20 +37,22 @@ function addLoadAndStore(b) {
         let ins = b.ilcode[i];
         
         let load1, load2, store;
-        if(isVar(ins.r1)) {
-            const r1 = getRegister();
-            load1 = {op: 'load', w: r1, r1: ins.r1 };
-            ins.r1 = r1;
-        }
-        if(isVar(ins.r2)) {
-            const r2 = getRegister();
-            load2 = {op: 'load', w: r2, r1: ins.r2 };
-            ins.r2 = r2;
-        }
-        if(isVar(ins.w)) {
-            const w = getRegister();
-            store = {op: 'store', r1: ins.w, r2: w };
-            ins.w = w;
+        if(ins.op != 'ptrOf') {
+            if(isVar(ins.r1)) {
+                const r1 = getRegister();
+                load1 = {op: 'load', w: r1, r1: ins.r1 };
+                ins.r1 = r1;
+            }
+            if(isVar(ins.r2)) {
+                const r2 = getRegister();
+                load2 = {op: 'load', w: r2, r1: ins.r2 };
+                ins.r2 = r2;
+            }
+            if(isVar(ins.w)) {
+                const w = getRegister();
+                store = {op: 'store', r1: ins.w, r2: w };
+                ins.w = w;
+            }
         }
     
         if(load1)
