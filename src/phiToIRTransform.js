@@ -1,10 +1,10 @@
 'use strict';
 //
-// Transform Psi function to IR
+// Transform Phi function to IR
 //
-function psiToIRTransform(n) {
-    if (n.visited == 'psi2ir') return;
-    n.visited = 'psi2ir';
+function phiToIRTransform(n) {
+    if (n.visited == 'phi2ir') return;
+    n.visited = 'phi2ir';
 
     for (const p in n.phis) {
         const phi = n.phis[p];
@@ -18,26 +18,25 @@ function psiToIRTransform(n) {
             let lastCond;
 
             if (ass.length > 1) {
+                let lastOp = ass[ass.length - 1].op;
                 if (
-                    ass[ass.length - 1].op == 'JMP' ||
-                    ass[ass.length - 1].op == 'ifFalse' ||
-                    ass[ass.length - 1].op == 'ifTrue'
+                    lastOp == 'jmp'
                 ) {
                     lastJump = ass.pop();
-                    if (ass.length > 1 && ass[ass.length - 1].w.v == '$cond') lastCond = ass.pop();
+                }
+                if (
+                    lastOp == 'ifFalse' ||
+                    lastOp == 'ifTrue'
+                ) {
+                    lastJump = ass.pop();
+                    lastCond = ass.pop();
                 }
             }
 
             n.predecessors[i].emit({
-                op: '=',
-                w: {
-                    t: 'VAR',
-                    v: phi.w
-                },
-                r1: {
-                    t: 'VAR',
-                    v: phi.r[i]
-                },
+                op: 'store',
+                r1: phi.w,
+                r2: phi.r[i],
             });
             if (lastCond) {
                 ass.push(lastCond);
@@ -49,8 +48,8 @@ function psiToIRTransform(n) {
     }
     delete n.phis;
     for (const child of n.successors) {
-        psiToIRTransform(child);
+        phiToIRTransform(child);
     }
 }
 
-module.exports = psiToIRTransform;
+module.exports = phiToIRTransform;

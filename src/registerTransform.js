@@ -65,25 +65,28 @@ function findVariableMapping() {
     addVertex(dropped.id);
     // EAX is always used as a temporary
     const availableRegisters = {
+        eax: {
+            t: 'REG',
+            k: 'eax',
+            v: 'eax',
+            index: 0
+        },
         ebx: {
             t: 'REG',
             k: 'ebx',
             v: 'ebx',
-            address: 'ebp+8',
             index: 0
         },
         ecx: {
             t: 'REG',
             k: 'ecx',
             v: 'ecx',
-            address: 'ebp+12',
             index: 1
         },
         edx: {
             t: 'REG',
             k: 'edx',
             v: 'edx',
-            address: 'ebp+16',
             index: 3
         },
     };
@@ -134,6 +137,9 @@ function addFullyLinkedVertices(keys) {
     }
 }
 
+function isRegister(v) {
+    return v && (/*v.t == 'VAR' ||*/ v.t == 'VREG');
+}
 // Build a graph representing variable used at the same time
 // 
 // Parse the code backward, add vertex for each variable when the variable is read,
@@ -160,11 +166,19 @@ function buildLiveVariableGraph(n) {
         }
 
         //
-        // after instruction
+        // During and after instruction
         //
         // Ensure a variable is available to write
-        if (ins.w && ins.w.t == 'REG') {
+        if (isRegister(ins.w)) {
             liveVariables[ins.w.ssa] = true;
+        }
+
+        if (isRegister(ins.r1)) {
+            liveVariables[ins.r1.ssa] = true;
+        }
+
+        if (isRegister(ins.r2)) {
+            liveVariables[ins.r2.ssa] = true;
         }
 
         addFullyLinkedVertices(Object.keys(liveVariables));
@@ -173,16 +187,8 @@ function buildLiveVariableGraph(n) {
         // before instruction
         //
         // Propagate read variables backwards / Delete written variable
-        if (ins.w && ins.w.t == 'REG') {
+        if (isRegister(ins.w)) {
             delete liveVariables[ins.w.ssa];
-        }
-
-        if (ins.r1 && ins.r1.t == 'VAR') {
-            liveVariables[ins.r1.ssa] = true;
-        }
-
-        if (ins.r2 && ins.r2.t == 'REG') {
-            liveVariables[ins.r2.ssa] = true;
         }
 
         addFullyLinkedVertices(Object.keys(liveVariables));
@@ -214,17 +220,17 @@ function replaceVariables(n, registers) {
     for (let ii = 0; ii < n.ilcode.length; ii++) {
         const ins = n.ilcode[ii];
 
-        if (ins.r1 && ins.r1.t == 'REG') {
+        if (isRegister(ins.r1)) {
             ins.r1.reg = registers[ins.r1.ssa].v;
             ins.r1.address = registers[ins.r1.ssa].address;
         }
 
-        if (ins.r2 && ins.r2.t == 'REG') {
+        if (isRegister(ins.r2)) {
             ins.r2.reg = registers[ins.r2.ssa].v;
             ins.r2.address = registers[ins.r2.ssa].address;
         }
 
-        if (ins.w && ins.w.t == 'REG') {
+        if (isRegister(ins.w)) {
             ins.w.reg = registers[ins.w.ssa].v;
             ins.w.address = registers[ins.w.ssa].address;
         }

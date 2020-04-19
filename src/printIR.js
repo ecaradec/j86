@@ -4,7 +4,8 @@ function toStringIR(b) {
     const v = (x) => {
         // return JSON.stringify(x);
         const reg = x.reg ? ':'+x.reg:'';
-        return (x.ssa?x.ssa:x.v)+reg;
+        const address = x.address ? ':['+x.address+']':'';
+        return (x.ssa?x.ssa:x.v)+reg;//+address;
     };
     const text = [];
     for (let ins of b.ilcode) {
@@ -17,8 +18,8 @@ function toStringIR(b) {
             text.push(`${v(ins.w)} := ${v(ins.r1)} - ${v(ins.r2)}`);
         } else if (ins.op == '=') {
             text.push(`${v(ins.w)} := ${v(ins.r1)}`);
-        } else if (ins.op == 'GET_POINTER') {
-            text.push(`${v(ins.w)} := getPtr(${v(ins.r1)})`);
+        } else if (ins.op == 'ptrOf') {
+            text.push(`${v(ins.w)} := &${v(ins.r1)}`);
         } else if (ins.op == '==') {
             text.push(`${v(ins.w)} := ${v(ins.r1)} == ${v(ins.r2)}`);
         } else if (ins.op == '!=') {
@@ -55,12 +56,12 @@ function toStringIR(b) {
 
 function printIR(b) {
     let f = function() {
-        if (b.visited == f) return;
-        b.visited = f;
+        if (b.visited == 'printIR') return;
+        b.visited = 'printIR';
         console.log(`${b.name}:`);
         for (const j in b.phis) {
             const phi = b.phis[j];
-            console.log(phi.w, ':=', 'psi(', phi.r.join(', '), ')');
+            console.log(phi.w.ssa?phi.w.ssa:phi.w.v, ':=', 'psi(', phi.r.map(x=>x.ssa?x.ssa:x.v).join(', '), ')');
         }
         if (b.ilcode.length > 0) console.log(toStringIR(b).join('\n'));
 

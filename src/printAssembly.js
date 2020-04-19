@@ -23,48 +23,47 @@ function printAssembly(b) {
         //return JSON.stringify(x);
         //return x.v;
         if(x.reg) {
-            return `${x.reg}:${x.v}`;
+            return `${x.reg}`;
             //return x.reg; //+':'+x.v;
         }
         return x.v;
     };
 
     const indirect = x => {
-        // return JSON.stringify(x);
+        //return JSON.stringify(x);
         if(x.reg) {
-            return `dword ptr [${x.reg}:${x.v}]`;
+            return `[${x.reg}]`;
         }
-        return `dword ptr [${x.address}:${x.v}]`;
+        return `[${x.address}]`;
         //return `dword ptr [${x.address}]`;
     };
 
     let trueCond, falseCond;
     for (const ins of b.ilcode) {
         if (ins.op == '*') {
-            printIns(`mov eax, ${v(ins.r1)}`);
-            printIns(`mul eax, ${v(ins.r2)}`);
-            printIns(`mov ${v(ins.w)}, eax`);
+            printIns(`mov ${v(ins.w)}, ${v(ins.r1)}`);
+            printIns(`mul ${v(ins.w)}, ${v(ins.r2)}`);
         } else if (ins.op == '+') {
-            printIns(`mov eax, ${v(ins.r1)}`);
-            printIns(`add eax, ${v(ins.r2)}`);
-            printIns(`mov ${v(ins.w)}, eax`);
+            printIns(`mov ${v(ins.w)}, ${v(ins.r1)}`);
+            printIns(`add ${v(ins.w)}, ${v(ins.r2)}`);
         } else if (ins.op == '-') {
-            printIns(`mov eax, ${v(ins.r1)}`);
-            printIns(`sub eax, ${v(ins.r2)}`);
-            printIns(`mov ${v(ins.w)}, eax`);
+            printIns(`mov ${v(ins.w)}, ${v(ins.r1)}`);
+            printIns(`sub ${v(ins.w)}, ${v(ins.r2)}`);
         } else if (ins.op == '=') {
             if (ins.w.v != ins.r1.v) {
                 // if both variable are in memory, use eax to transfer
                 if (ins.w.spill && ins.r1.spill) {
+                    printIns('push eax');
                     printIns(`mov eax, ${v(ins.r1)}`);
                     printIns(`mov ${v(ins.w)}, eax`);
+                    printIns('pop eax');
                 } else {
                     printIns(`mov ${v(ins.w)}, ${v(ins.r1)}`);
                 }
             }
-        } else if(ins.op == 'GET_POINTER') {
+        } else if(ins.op == 'ptrOf') {
             //console.log(JSON.stringify(ins));
-            printIns(`lea ${v(ins.w)}, dword ptr [${ins.r1.address}]`);
+            printIns(`lea ${v(ins.w)}, ${indirect(ins.r1)}`);
         } else if(ins.op == 'load') {
             printIns(`mov ${v(ins.w)}, ${indirect(ins.r1)}`);
         } else if(ins.op == 'store') {

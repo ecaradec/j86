@@ -92,6 +92,124 @@ function dominanceFrontier() {
     }
 }
 
+
+// Get the list of all variables used in a block
+function getVariables(n) {
+    let variables = {};
+    for(let ii in n.ilcode) {
+        let ins = n.ilcode[ii];
+        if(ins.w && ins.w.t == 'VAR') variables[ins.w.v] = true;
+        if(ins.r1 && ins.r1.t == 'VAR') variables[ins.r1.v] = true;
+        if(ins.r2 && ins.r2.t == 'VAR') variables[ins.r2.v] = true;
+    }
+    return Object.keys(variables);
+}
+
+// get the list of all variables in all blocks
+function getAllVariables(nodes) {
+    let allVariables = {};
+    for(let i in nodes) {
+        let variables = getVariables(nodes[i]);
+        for(let v in variables) {
+            allVariables[variables[v]] = true;
+        }
+    }
+    return Object.keys(allVariables);
+}
+
+// get the list of blocks where a variable is used
+function getDefSites(nodes) {
+    let defSites={};
+    for(let i in nodes) {
+        let n = nodes[i];
+        let variables = getVariables(nodes[i]);
+        for(let v in variables) {
+            if(defSites[variables[v]] == undefined) defSites[variables[v]] = [];
+            defSites[variables[v]].push(n);
+        }
+    }
+    return defSites;
+}
+
+// add phi function to the dominant 
+function placePhiFunctions(nodes) {
+    let defSites = getDefSites(nodes);
+    let allVariables = getAllVariables(nodes);
+    // process variables one at a time
+    for(let iv in allVariables) {
+        let v = allVariables[iv];
+        let w = defSites[v];
+        // as long as there is block with that variable we didn't process
+        // (new block can show up when we add phi functions )
+        while(w.length > 0) {
+            let n = w.pop();
+            for(let i in n.frontier) {
+                let f = n.frontier[i];
+                // check if variable is live on all predecessors
+                let isLive = true;
+                for(let ip in f.predecessors) {
+                    let p = f.predecessors[ip];
+                    isLive &= p.liveVariables[v];
+                }
+                // if there is no phi and the variable is live, add it
+                if( f.phis[v] == undefined && isLive) {
+                    f.phis[v] = {w: {t:'VAR', v:v}, r:[]};
+                    w.push(f);
+                }
+            }
+        }
+    }
+}
+
+
+// Live range and live interval
+// https://web.stanford.edu/class/archive/cs/cs143/cs143.1128/lectures/17/Slides17.pdf
+//
+// A better algorithm
+// https://www.cs.colostate.edu/~mstrout/CS553/slides/lecture03.pdf
+function buildLiveVariable(n) {
+    if (n.visited == buildLiveVariable) return;
+    n.visited = buildLiveVariable;
+
+    let liveVariables = {};
+    for (let s of n.successors) {
+        liveVariables = {
+            ...buildLiveVariable(s)
+        };
+    }
+
+    // Propagate read variables for backward
+    // When a variable is read, it's added to the list of active variables
+    // When a variable is written, it is removed from the list of active variable
+    for (let i = n.ilcode.length - 1; i >= 0; i--) {
+        const ins = n.ilcode[i];
+        if (ins == undefined) {
+            continue;
+        }
+
+        // Propagate read variables backwards / Delete written variable
+        // As the language doesn't have variable definition, writing the variable is considered the definition
+        if (ins.w && ins.w.t == 'VAR') {
+            delete liveVariables[ins.w.v];
+        }
+
+        if (ins.r1 && ins.r1.t == 'VAR') {
+            liveVariables[ins.r1.v] = true;
+        }
+
+        if (ins.r2 && ins.r2.t == 'VAR') {
+            liveVariables[ins.r2.v] = true;
+        }
+    }
+
+    for(let i in n.predecessors) {
+        let p = n.predecessors[i];
+        p.liveVariables = {...p.liveVariables, ...liveVariables};
+    }
+
+    return liveVariables;
+}
+
 let doms;
 
 let nodes;
@@ -114,5 +232,9 @@ module.exports = function(ast) {
         n.parents.push(d);
         d.children.push(n);
     }
+
+    buildLiveVariable(nodes[0]);
+
+    placePhiFunctions(nodes);
     return nodes;
 };

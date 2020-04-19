@@ -1,11 +1,18 @@
-FUNCTION test(a,b) {
+FUNCTION test(a, b) {
     c = a + b;
-    RETURN 1;
+    RETURN c;
 }
 
 FUNCTION main() {
     a = 1;
-    a = a + 1;
-    b = a + 1;
-    test(1,2);
+    a = 2;
+    b = a + a;
+    IF( a == 1 ) {
+        a = 2;
+    } ELSE {
+        a = b;
+    }
+    b = a;
+    c = &b;
+    test(a,b);
 }

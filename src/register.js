@@ -3,5 +3,9 @@
 let index = 0;
 module.exports = function() {
     index++;
-    return 'r'+index;
+    return {
+        t: 'VREG',
+        v: 'r'+index,
+        ssa: 'r'+index
+    };
 };

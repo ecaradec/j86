@@ -68,14 +68,16 @@ function parseTerm(b) {
         vstack.push(v);
     } else if (getToken().t == '&') {
         eatToken('&');
-        const name = eatToken('NAME');
+        b = parseTerm(b);
+        let v = vstack.pop();
+        if(v.t != 'VAR') {
+            throw 'Cant take a reference of '+v.t;
+        }
+        // const name = eatToken('NAME');
         // indicate that we want the address of the variable
-        const tmp = getRegister();
-        b.emit({op: 'GET_POINTER', w: {t: 'REG', v: tmp}, r1: getAddress(b, name) });
-        vstack.push({
-            t: 'VAR',
-            v: tmp
-        });
+        const w = getRegister();
+        b.emit({op: 'ptrOf', w: w, r1: getAddress(b, v) });
+        vstack.push(w);
     } else if (getToken().t == 'PRODUCT') {
         eatToken('PRODUCT');
         const name = eatToken('NAME');
@@ -90,10 +92,11 @@ function parseTerm(b) {
         if(getToken().t == '(') {
             b = parseFunctionCall(name, b);
         } else {
-            vstack.push({
-                t: 'VAR',
-                v: name.v
-            });
+            let v = {t: 'VAR', v: name.v};
+            if(!b.func.args[name.v] && !b.func.variables[name.v])
+                declareLocalVariable(b, {t: 'VAR', v: name.v});
+
+            vstack.push(getAddress(b, v));
         }
     }
 
@@ -108,10 +111,7 @@ function parseSum(b) {
 
         const op2 = popRHS(b);
         const op1 = popRHS(b);
-        const dst = {
-            t: 'REG',
-            v: getRegister()
-        };
+        const dst = getRegister();
 
         if (s.v == '+') {
             b.emit({
@@ -158,10 +158,7 @@ function parseProduct(b) {
         b = parseProduct(b);
         const op2 = popRHS(b);
         const op1 = popRHS(b);
-        const dst = {
-            t: 'REG',
-            v: getRegister()
-        };
+        const dst = getRegister();
 
         b.emit({
             op: '*',
@@ -174,9 +171,12 @@ function parseProduct(b) {
     return b;
 }
 
-function addLocalVariable(b, v) {
-    b.func.variables[v.v] = {v, address: `ebp-${4*b.func.varCount}`};
+function declareLocalVariable(b, v) {
+    if(b.func.variables[v.v])
+        return b.func.variables[v.v];
+    b.func.variables[v.v] = {...v, address: `ebp-${4*b.func.varCount}`};
     b.func.varCount++;
+    return b.func.variables[v.v];
 }
 
 function parseAssignment(dst, b) {
@@ -186,7 +186,7 @@ function parseAssignment(dst, b) {
     if(dst.mod == '*') {
         b.emit({op: 'store', r1: dst, r2: src});
     } else {
-        addLocalVariable(b, {...dst, t: 'STACKVAR'});
+        dst = declareLocalVariable(b, dst);
         b.emit({
             op: '=',
             w: dst,
@@ -384,7 +384,9 @@ function parseReturn(b) {
     eatToken('RETURN');
     b = parseSum(b);
     const r1 = popRHS(b);
-    b.emit({op: 'store', r1: {t: 'VAR', v: '_ret', mod: '*'}, r2: r1});
+    const w = getRegister();
+    b.emit({op: '=', w: w, r1: b.func.args['_ret']});
+    b.emit({op: 'store', r1: w, r2: r1});
     eatToken(';');
     b.emit({
         op: 'return'
@@ -422,19 +424,13 @@ function parseFunctionCall(name, b) {
     }
     eatToken(')');
 
+    const retValue = declareLocalVariable(b, {t:'VAR', v: '_ret'});
     const tmp = getRegister();
-    b.emit({op: '=', w: {t: 'REG', v:tmp}, r1:{t: 'DIGIT', v:0}});
-    b.emit({
-        op: 'push',
-        r1: {t: 'VAR', mod: '&', v: tmp}
-    });
+    b.emit({op: 'ptrOf', w: tmp, r1: retValue});
+    b.emit({op: 'push', r1: tmp});
+    b.emit({op: 'call', name: name.v});
 
-    b.emit({
-        op: 'call',
-        name: name.v
-    });
-
-    vstack.push({t: 'VAR', v:tmp});
+    vstack.push(retValue);
 
     return b;
 }
