@@ -32,6 +32,15 @@ function printAssembly(b) {
     const indirect = x => {
         //return JSON.stringify(x);
         if(x.reg) {
+            return `dword [${x.reg}]`;
+        }
+        return `dword [${x.address}]`;
+        //return `dword ptr [${x.address}]`;
+    };
+
+    const indirectLEA = x => {
+        //return JSON.stringify(x);
+        if(x.reg) {
             return `[${x.reg}]`;
         }
         return `[${x.address}]`;
@@ -63,7 +72,7 @@ function printAssembly(b) {
             }
         } else if(ins.op == 'ptrOf') {
             //console.log(JSON.stringify(ins));
-            printIns(`lea ${v(ins.w)}, ${indirect(ins.r1)}`);
+            printIns(`lea ${v(ins.w)}, ${indirectLEA(ins.r1)}`);
         } else if(ins.op == 'load') {
             printIns(`mov ${v(ins.w)}, ${indirect(ins.r1)}`);
         } else if(ins.op == 'store') {
@@ -92,7 +101,7 @@ function printAssembly(b) {
             console.log(`${ins.name}:`);
             printIns('push ebp');
             printIns('mov ebp, esp');
-            printIns(`sub esp, ${4 * ins.varCount}`);
+            printIns(`sub esp, ${4 * b.func.varCount}`);
             var registers = Object.keys(ins.usedRegisters);
             for (const j in registers) {
                 printIns('push', registers[j]);

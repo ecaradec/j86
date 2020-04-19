@@ -174,8 +174,8 @@ function parseProduct(b) {
 function declareLocalVariable(b, v) {
     if(b.func.variables[v.v])
         return b.func.variables[v.v];
-    b.func.variables[v.v] = {...v, address: `ebp-${4*b.func.varCount}`};
     b.func.varCount++;
+    b.func.variables[v.v] = {...v, address: `ebp-${4*b.func.varCount}`};
     return b.func.variables[v.v];
 }
 
@@ -340,7 +340,7 @@ function parseFunction(b) {
     if (getToken().t == 'NAME') {
         var n = eatToken('NAME');
         f.args[n.v] = {
-            t: 'STACKVAR',
+            t: 'VAR',
             v: n.v,
             address: `ebp+${4 * i + 8}`,
             index: i,
@@ -350,7 +350,7 @@ function parseFunction(b) {
             eatToken(',');
             const n = eatToken('NAME');
             f.args[n.v] = {
-                t: 'STACKVAR',
+                t: 'VAR',
                 v: n.v,
                 address: `ebp+${4 * i + 8}`,
                 index: i,
@@ -359,7 +359,7 @@ function parseFunction(b) {
         }
     }
     //f.args = b.variables;
-    f.args['_ret'] = {t: 'STACKVAR', v: '_ret', address: `ebp+${4 * i + 8}`};
+    f.args['_ret'] = {t: 'VAR', v: '_ret', address: `ebp+${4 * i + 8}`};
     i++;
     b.func.argCount = i;
     functionDeclarations[name.v] = i;
@@ -400,34 +400,31 @@ function parseFunctionCall(name, b) {
         throw `Function ${name.v} doesnt exists`;
     }
     let argumentsCount = 1;
+    let args = [];
     if (getToken().t != ')') {
         b = parseValue(b);
         var r1 = popRHS(b);
-        b.emit({
-            op: 'push',
-            r1
-        });
-        argumentsCount++;
+        args.push(r1);
         while (getToken().t == ',') {
             eatToken(',');
             b = parseValue(b);
             const r1 = popRHS(b);
-            b.emit({
-                op: 'push',
-                r1
-            });
-            argumentsCount++;
+            args.push(r1);
         }
-    }
-    if (functionDeclarations[name.v] !== argumentsCount) {
-        throw `Function call "${name.v}" doesnt match declared arguments`;
     }
     eatToken(')');
 
     const retValue = declareLocalVariable(b, {t:'VAR', v: '_ret'});
     const tmp = getRegister();
     b.emit({op: 'ptrOf', w: tmp, r1: retValue});
-    b.emit({op: 'push', r1: tmp});
+    
+    args.push(tmp);
+
+    if (functionDeclarations[name.v] !== args.length) {
+        throw `Function call "${name.v}" doesnt match declared arguments`;
+    }
+
+    args.reverse().forEach((v)=>b.emit({op: 'push', r1:v}));
     b.emit({op: 'call', name: name.v});
 
     vstack.push(retValue);

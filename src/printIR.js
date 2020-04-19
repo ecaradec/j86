@@ -19,7 +19,7 @@ function toStringIR(b) {
         } else if (ins.op == '=') {
             text.push(`${v(ins.w)} := ${v(ins.r1)}`);
         } else if (ins.op == 'ptrOf') {
-            text.push(`${v(ins.w)} := &${v(ins.r1)}`);
+            text.push(`${v(ins.w)} := ptrOf ${v(ins.r1)}`);
         } else if (ins.op == '==') {
             text.push(`${v(ins.w)} := ${v(ins.r1)} == ${v(ins.r2)}`);
         } else if (ins.op == '!=') {
