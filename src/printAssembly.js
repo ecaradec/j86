@@ -130,21 +130,15 @@ function printAssembly(b) {
     }
 }
 
-function printAssemblyRec(b) {
-    if (b.visited == printAssemblyRec) return;
-    b.visited = printAssemblyRec;
-    console.log(`${b.name}:`);
-    printAssembly(b);
-    for (const s of b.successors) {
-        printAssemblyRec(s);
-    }
-}
-
-module.exports = function (block, strings) {
+module.exports = function (nodes, strings) {
     console.log('section .text');
     console.log('    global _start');
 
-    printAssemblyRec(block);
+    for(let i in nodes) {
+        let b = nodes[i];
+        console.log(`${b.name}:`);
+        printAssembly(b);
+    }
 
     console.log(`
 _start:
@@ -202,6 +196,6 @@ print:
 section .data`);
 
     for (let s in strings) {
-        console.log(`    ${s} db	 '${strings[s]}', 0`);
+        console.log(`    ${s} db	 '${strings[s]}', 0x0d, 0`);
     }
 };

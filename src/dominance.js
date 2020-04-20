@@ -152,10 +152,8 @@ function placePhiFunctions(nodes) {
                     isLive &= p.liveVariables[v];
                 }
                 // if there is no phi and the variable is live, add it
-                if( f.phis[v] == undefined && isLive) {
-                    f.phis[v] = {w: {t:'VAR', v:v}, r:[]};
-                    w.push(f);
-                }
+                if(isLive)
+                    f.addPHI(v);
             }
         }
     }

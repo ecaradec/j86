@@ -6,8 +6,9 @@ function phiToIRTransform(n) {
     if (n.visited == 'phi2ir') return;
     n.visited = 'phi2ir';
 
-    for (const p in n.phis) {
-        const phi = n.phis[p];
+    const phis = n.getPHIs();
+    for (const p in phis) {
+        const phi = phis[p];
 
         // the first value in psi is the variable name to write
         // the remaining are the value to select
@@ -34,9 +35,9 @@ function phiToIRTransform(n) {
             }
 
             n.predecessors[i].emit({
-                op: 'store',
-                r1: phi.w,
-                r2: phi.r[i],
+                op: '=',
+                w: phi.w,
+                r1: phi.r[i],
             });
             if (lastCond) {
                 ass.push(lastCond);
@@ -46,7 +47,10 @@ function phiToIRTransform(n) {
             }
         }
     }
-    delete n.phis;
+    while(n.ilcode.length > 0 && n.ilcode[0].op == 'phi') {
+        n.ilcode.shift();
+    }
+    
     for (const child of n.successors) {
         phiToIRTransform(child);
     }

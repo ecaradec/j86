@@ -3,13 +3,28 @@ FUNCTION sum(a, b) {
 }
 
 FUNCTION main() {
-    a = sum(1,2);
-    IF( a == 3) {
-        b = sum(1,1);
-        print("EQUAL TO 3");
+    a = 1;
+
+    IF( a == 1 ) {
+        print("IF OK");
     } ELSE {
-        b = sum(1,1);
-        print("NOT EQUAL TO 3");
+        print("IF NOK");
     }
-    c = b;
+
+    a = sum(1,1);
+    IF( a == 2) {
+        print("CALL OK");
+    } ELSE {
+        print("CALL NOK");
+    }
+
+    a = 5;
+    WHILE( a != 0 ) {
+        a = a - 1;
+    }
+    IF( a == 0 ) {
+        print("WHILE OK");
+    } ELSE {
+        print("WHILE NOK");
+    }
 }

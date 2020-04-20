@@ -35,7 +35,7 @@ function addLoadAndStore(b) {
     let ilcode = [];
     for(let i in b.ilcode) {
         let ins = b.ilcode[i];
-        if(ins.op == 'ptrOf') {
+        if(ins.op == 'ptrOf' || ins.op =='phi') {
             ilcode.push(ins);
             continue;
         }
@@ -68,12 +68,11 @@ function addLoadAndStore(b) {
     }
     b.ilcode = ilcode;
 
-
-    // TODO: should fix phi function with correct variable ?
     for(let is in b.successors) {
         let n = b.successors[is];
-        for(let v in n.phis) {
-            let phi = n.phis[v];
+        const phis = n.getPHIs();
+        for(let v in phis) {
+            let phi = phis[v];
             phi.w = getRegister();
         }
     }
@@ -92,12 +91,13 @@ function valuePropagationTransform(b) {
     let registerMapping = {};
     // the content of the memory
     let memoryMapping = {};
-    for(let i in b.phis) {
-        let phi = b.phis[i];
-        memoryMapping[i] = phi.w;
-    }
+
     for(let i in b.ilcode) {
         let ins = b.ilcode[i];
+
+        if(ins.op == 'phi') {
+            memoryMapping[ins.id] = ins.w;
+        }
 
         if(ins.op == 'load') {
             // if we don't know what's in the memory, at leat it contains
@@ -106,23 +106,26 @@ function valuePropagationTransform(b) {
                 memoryMapping[ins.r1.v] = ins.w;
 
             // load in the register the content of the memory
-            registerMapping[ins.w.ssa] = memoryMapping[ins.r1.v];
+            registerMapping[ins.w.v] = memoryMapping[ins.r1.v];
         }
         if(ins.op == 'store') {
             // the memory is equal to the content of the register
-            memoryMapping[ins.r1.v] = registerMapping[ins.r2.ssa];
+            if(registerMapping[ins.r2.v])
+                memoryMapping[ins.r1.v] = registerMapping[ins.r2.v];
+            else
+                memoryMapping[ins.r1.v] = ins.r2;
         }
-        if(ins.op == '=' && ins.r1 && ins.w && !ins.r2 && registerMapping[ins.r1.ssa]) {
+        if(ins.op == '=' && ins.r1 && ins.w && !ins.r2 && registerMapping[ins.r1.v]) {
             // as no register is read before been initialize we should always know what it contains
-            registerMapping[ins.w.ssa] = registerMapping[ins.r1.ssa];
+            registerMapping[ins.w.v] = registerMapping[ins.r1.v];
         }
-        if(ins.r1 && registerMapping[ins.r1.ssa]) {
+        if(ins.r1 && registerMapping[ins.r1.v]) {
             // replace a register by its known value if any
-            ins.r1 = registerMapping[ins.r1.ssa];
+            ins.r1 = registerMapping[ins.r1.v];
         }
-        if(ins.r2 && registerMapping[ins.r2.ssa]) {
+        if(ins.r2 && registerMapping[ins.r2.v]) {
             // replace a register by its known value if any
-            ins.r2 = registerMapping[ins.r2.ssa];
+            ins.r2 = registerMapping[ins.r2.v];
         }
         ilcode.push(ins);
     }
@@ -132,12 +135,16 @@ function valuePropagationTransform(b) {
 
     for(let is in b.successors) {
         let n = b.successors[is];
-        for(let v in n.phis) {
-            let phi = n.phis[v];
+        const phis = n.getPHIs();
+        for(let v in phis) {
+            let phi = phis[v];
 
             // find the index of the current block in the current block predecessor
             const ipred = n.predecessors.indexOf(b);
-            phi.r[ipred] = memoryMapping[v];
+            if(memoryMapping[v])
+                phi.r[ipred] = memoryMapping[v];
+            if(registerMapping[v])
+                phi.r[ipred] = registerMapping[v];
         }
     }
     
@@ -148,24 +155,44 @@ function valuePropagationTransform(b) {
 }
 
 // drop instructions that produce registers that are never read
+// As we dont do value propagation accross block, except in phi instructions
+// a register cant be propagated to another block. So we don't need to seek for register
+// usage in all blocks, only in successors phi functions.
 function dropUnusedTransform(b) {
-    // rename each variable in instruction in SSA form
     let ilcode = [];
-    let registerMapping = {}; // TODO: should initialize from successor phi functions
+
+    // TODO: should initialize from predecessors functions
+    let usedRegister = {};
+    
+    for(let is in b.successors) {
+        let n = b.successors[is];
+        const phis = n.getPHIs();
+        for(let v in phis) {
+            let phi = phis[v];
+            phi.r.forEach(x=>usedRegister[x.ssa]=true);
+        }
+    }
+
     for(let i = b.ilcode.length-1; i>=0; i--) {
         let ins = b.ilcode[i];
-        if(ins.r1)
-            registerMapping[ins.r1.v] = true;
-        if(ins.r2)
-            registerMapping[ins.r2.v] = true;
 
         // if the destination register of a register never used, drop the instruction
-        if( (ins.op =='=' || ins.op =='load' ) && ins.w && !registerMapping[ins.w.v])
+        if( (ins.op =='=' || ins.op =='load' || ins.op == 'phi' ) && ins.w && !usedRegister[ins.w.v])
             continue;
 
+        // TODO : should probably be done more cleanly: 
+        // if variable doesn't exists on all path remove the phi
+        if(ins.op == 'phi' && ( ins.r[0] == undefined || ins.r[1] == undefined)) {
+            continue;
+        }
         // local variable don't need to be stored (unless we take a pointer to them )
         if( ins.op == 'store' && ins.r1.t == 'VAR')
             continue;
+
+        if(ins.r1)
+            usedRegister[ins.r1.v] = true;
+        if(ins.r2)
+            usedRegister[ins.r2.v] = true;
         
         ilcode.unshift(ins);
     }
@@ -194,48 +221,48 @@ function clearVisited(b) {
 fs.readFile(process.argv[2], 'utf8', function(err, program) {
     console.log('* PARSING *');
     parser.build(program);
-    printIR(parser.getAST());
+    printIR(parser.getBlockList());
     console.log('');
 
     console.log('* DOMINANCE & PHI INSERTION *');
     let nodes = buildDominance(parser.getAST());
-    printIR(parser.getAST());
+    printIR(parser.getBlockList());
     console.log('');
 
     console.log('* SSA TRANSFORM *');
     clearVisited(nodes[0]);
     frontierSSATransform(nodes);
-    printIR(parser.getAST());
+    printIR(parser.getBlockList());
     console.log('');
 
     console.log('* LOAD AND STORE TRANSFORM *');
     clearVisited(nodes[0]);
     addLoadAndStore(parser.getAST());
-    printIR(parser.getAST());
+    printIR(parser.getBlockList());
     console.log('');
     
     console.log('* VALUE PROPAGATION TRANSFORM *');
     clearVisited(nodes[0]);
     valuePropagationTransform(nodes[0]);
-    printIR(parser.getAST());
+    printIR(parser.getBlockList());
     console.log('');
 
     console.log('* DROP UNUSED TRANSFORM *');
     clearVisited(nodes[0]);
     dropUnusedTransform(nodes[0]);
-    printIR(parser.getAST());
+    printIR(parser.getBlockList());
     console.log('');
 
     console.log('* PHI RESOLUTION TRANSFORM *');
     phiToIRTransform(parser.getAST());
-    printIR(parser.getAST());
+    printIR(parser.getBlockList());
     console.log('');
 
     console.log('* REGISTER ALLOCATION TRANSFORM *');
     clearVisited(nodes[0]);
     registersTransform(parser.getAST());
-    printIR(parser.getAST());
+    printIR(parser.getBlockList());
     console.log('');
 
-    printAssembly(parser.getAST(), parser.getStrings());    
+    printAssembly(parser.getBlockList(), parser.getStrings());    
 });

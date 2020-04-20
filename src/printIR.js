@@ -47,6 +47,9 @@ function toStringIR(b) {
             text.push(`${v(ins.w)} = load ${v(ins.r1)}`);
         } else if (ins.op == 'store') {
             text.push(`store ${v(ins.r1)}, ${v(ins.r2)}`);
+        } else if (ins.op == 'phi') {
+            // console.log(JSON.stringify(ins));
+            text.push(`${ins.w.ssa?ins.w.ssa:ins.w.v} := phi ${ins.id} [ ${ins.r.map(x=>x.ssa?x.ssa:x.v).join(', ')} ]`);
         } else {
             text.push(JSON.stringify(ins));
         }
@@ -54,23 +57,12 @@ function toStringIR(b) {
     return text;
 }
 
-function printIR(b) {
-    let f = function() {
-        if (b.visited == 'printIR') return;
-        b.visited = 'printIR';
+function printIR(nodes) {
+    for(let i in nodes) {
+        let b = nodes[i];
         console.log(`${b.name}:`);
-        for (const j in b.phis) {
-            const phi = b.phis[j];
-            console.log(phi.w.ssa?phi.w.ssa:phi.w.v, ':=', 'phi', j, '[', phi.r.map(x=>x.ssa?x.ssa:x.v).join(', '), ']');
-        }
         if (b.ilcode.length > 0) console.log(toStringIR(b).join('\n'));
-
-        for (const child of b.successors) {
-            printIR(child);
-        }
-    };
-    return f(b);
-    // console.log("");
+    }
 }
 
 function toArray(b) {
@@ -78,10 +70,6 @@ function toArray(b) {
     b.visited = toArray;
     let results = [];
     results.push(`${b.name}:`);
-    for (const j in b.phis) {
-        const phi = b.phis[j];
-        results.push(`${phi.w} := phi('${phi.r.join(', ')})`);
-    }
     if (b.ilcode.length > 0) {
         Array.prototype.push.apply(results, toStringIR(b));
     }

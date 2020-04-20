@@ -40,6 +40,24 @@ function Block(predecessors) {
         this.ilcode.push(data);
         return this.ilcode.length - 1;
     };
+
+    this.addPHI = (v) => {
+        let phiList = this.getPHIs();
+        if(phiList[v])
+            return;
+        this.ilcode.unshift({op: 'phi', id: v, w: {t:'VAR', v:v}, r:[] });
+    };
+
+    this.getPHIs = function() {
+        let phiList = {};
+        for(let i in this.ilcode) {
+            const ins = this.ilcode[i];
+            if(ins.op != 'phi')
+                break;
+            phiList[ins.id] = ins;
+        }
+        return phiList;
+    };
 }
 
 function popLHS() {
@@ -226,7 +244,7 @@ function parseCondStatement(b) {
 function parseIfStatement(b) {
     const prev = b;
 
-    let trueBlock = b;
+    let trueBlock = new Block([b]);
     let falseBlock = new Block([b]);
 
     eatToken('IF');
@@ -254,7 +272,7 @@ function parseIfStatement(b) {
         eatToken('}');
     }
 
-    const endBlock = new Block([trueBlock, falseBlock], 'endIf');
+    const endBlock = new Block([trueBlock, falseBlock]);
     trueBlock.emit({
         op: 'jmp',
         label: endBlock.name
@@ -359,7 +377,7 @@ function parseFunction(b) {
         }
     }
     //f.args = b.variables;
-    f.args['_ret'] = {t: 'VAR', v: '_ret', address: `ebp+${4 * i + 8}`};
+    f.args['_retptr'] = {t: 'VAR', v: '_retptr', address: `ebp+${4 * i + 8}`};
     i++;
     b.func.argCount = i;
     functionDeclarations[name.v] = i;
@@ -385,7 +403,7 @@ function parseReturn(b) {
     b = parseSum(b);
     const r1 = popRHS(b);
     const w = getRegister();
-    b.emit({op: '=', w: w, r1: b.func.args['_ret']});
+    b.emit({op: '=', w: w, r1: b.func.args['_retptr']});
     b.emit({op: 'store', r1: w, r2: r1});
     eatToken(';');
     b.emit({
@@ -394,6 +412,7 @@ function parseReturn(b) {
     return b;
 }
 
+let retIndex = 0;
 function parseFunctionCall(name, b) {
     eatToken('(');
     if (functionDeclarations[name.v] === undefined) {
@@ -414,7 +433,8 @@ function parseFunctionCall(name, b) {
     }
     eatToken(')');
 
-    const retValue = declareLocalVariable(b, {t:'VAR', v: '_ret'});
+    retIndex++;
+    const retValue = declareLocalVariable(b, {t:'VAR', v: '_ret_'+retIndex});
     const tmp = getRegister();
     b.emit({op: 'ptrOf', w: tmp, r1: retValue});
     
@@ -477,5 +497,6 @@ module.exports = {
         ast = parseProgram();
     },
     getStrings: () => strings,
-    getAST: () => ast
+    getAST: () => ast,
+    getBlockList: () => blockList
 };
