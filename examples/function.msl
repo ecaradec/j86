@@ -1,12 +1,15 @@
-FUNCTION test(a, b) {
+FUNCTION sum(a, b) {
     RETURN a + b;
 }
 
 FUNCTION main() {
-    a = test(1,2);
+    a = sum(1,2);
     IF( a == 3) {
+        b = sum(1,1);
         print("EQUAL TO 3");
     } ELSE {
+        b = sum(1,1);
         print("NOT EQUAL TO 3");
     }
+    c = b;
 }

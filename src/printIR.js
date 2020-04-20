@@ -61,7 +61,7 @@ function printIR(b) {
         console.log(`${b.name}:`);
         for (const j in b.phis) {
             const phi = b.phis[j];
-            console.log(phi.w.ssa?phi.w.ssa:phi.w.v, ':=', 'psi(', phi.r.map(x=>x.ssa?x.ssa:x.v).join(', '), ')');
+            console.log(phi.w.ssa?phi.w.ssa:phi.w.v, ':=', 'phi', j, '[', phi.r.map(x=>x.ssa?x.ssa:x.v).join(', '), ']');
         }
         if (b.ilcode.length > 0) console.log(toStringIR(b).join('\n'));
 
@@ -80,7 +80,7 @@ function toArray(b) {
     results.push(`${b.name}:`);
     for (const j in b.phis) {
         const phi = b.phis[j];
-        results.push(`${phi.w} := psi('${phi.r.join(', ')})`);
+        results.push(`${phi.w} := phi('${phi.r.join(', ')})`);
     }
     if (b.ilcode.length > 0) {
         Array.prototype.push.apply(results, toStringIR(b));

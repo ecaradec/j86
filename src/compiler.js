@@ -68,6 +68,16 @@ function addLoadAndStore(b) {
     }
     b.ilcode = ilcode;
 
+
+    // TODO: should fix phi function with correct variable ?
+    for(let is in b.successors) {
+        let n = b.successors[is];
+        for(let v in n.phis) {
+            let phi = n.phis[v];
+            phi.w = getRegister();
+        }
+    }
+
     // recurse through dominated nodes giving a copy of the current index of variables
     for(let ic in b.children) {
         addLoadAndStore(b.children[ic]);
@@ -82,26 +92,29 @@ function valuePropagationTransform(b) {
     let registerMapping = {};
     // the content of the memory
     let memoryMapping = {};
+    for(let i in b.phis) {
+        let phi = b.phis[i];
+        memoryMapping[i] = phi.w;
+    }
     for(let i in b.ilcode) {
         let ins = b.ilcode[i];
 
         if(ins.op == 'load') {
-            if(memoryMapping[ins.r1.v]) {
-                // if we know what is in memory load it into register
-                registerMapping[ins.w.ssa] = memoryMapping[ins.r1.v];
-            } else {
-                // the memory state is equal to the register we just read
-                // this is only possible because we never rewrite in a register
+            // if we don't know what's in the memory, at leat it contains
+            // the same as the register we just read
+            if(!memoryMapping[ins.r1.v])
                 memoryMapping[ins.r1.v] = ins.w;
-            }
+
+            // load in the register the content of the memory
+            registerMapping[ins.w.ssa] = memoryMapping[ins.r1.v];
         }
         if(ins.op == 'store') {
             // the memory is equal to the content of the register
             memoryMapping[ins.r1.v] = registerMapping[ins.r2.ssa];
         }
-        if(ins.op == '=' && ins.r1 && ins.w && !ins.r2) {
-            // the register is equal to the register we just set into
-            registerMapping[ins.w.ssa] = ins.r1;
+        if(ins.op == '=' && ins.r1 && ins.w && !ins.r2 && registerMapping[ins.r1.ssa]) {
+            // as no register is read before been initialize we should always know what it contains
+            registerMapping[ins.w.ssa] = registerMapping[ins.r1.ssa];
         }
         if(ins.r1 && registerMapping[ins.r1.ssa]) {
             // replace a register by its known value if any
@@ -115,21 +128,19 @@ function valuePropagationTransform(b) {
     }
     b.ilcode = ilcode;
     // console.log(JSON.stringify(registerMapping));
-    //console.log(JSON.stringify(memoryMapping));
+    // console.log(JSON.stringify(memoryMapping));
 
-    // TODO: should fix phi function with correct variable ?
     for(let is in b.successors) {
         let n = b.successors[is];
         for(let v in n.phis) {
             let phi = n.phis[v];
 
             // find the index of the current block in the current block predecessor
-            let ipred = n.predecessors.indexOf(b);
+            const ipred = n.predecessors.indexOf(b);
             phi.r[ipred] = memoryMapping[v];
-            // phi.w = registerMapping[v];
         }
     }
-
+    
     // recurse through dominated nodes giving a copy of the current index of variables
     for(let ic in b.children) {
         valuePropagationTransform(b.children[ic]);
@@ -140,15 +151,20 @@ function valuePropagationTransform(b) {
 function dropUnusedTransform(b) {
     // rename each variable in instruction in SSA form
     let ilcode = [];
-    let usedRegister = {}; // TODO: should initialize from successor phi functions
+    let registerMapping = {}; // TODO: should initialize from successor phi functions
     for(let i = b.ilcode.length-1; i>=0; i--) {
         let ins = b.ilcode[i];
         if(ins.r1)
-            usedRegister[ins.r1.v] = true;
+            registerMapping[ins.r1.v] = true;
         if(ins.r2)
-            usedRegister[ins.r2.v] = true;
+            registerMapping[ins.r2.v] = true;
 
-        if( (ins.op =='=' || ins.op =='load' || ins.op =='store' ) && ins.w && !usedRegister[ins.w.v])
+        // if the destination register of a register never used, drop the instruction
+        if( (ins.op =='=' || ins.op =='load' ) && ins.w && !registerMapping[ins.w.v])
+            continue;
+
+        // local variable don't need to be stored (unless we take a pointer to them )
+        if( ins.op == 'store' && ins.r1.t == 'VAR')
             continue;
         
         ilcode.unshift(ins);
