@@ -16,8 +16,9 @@ function isVar(v) {
 }
 
 // Traverse the dominance tree, increasing variables index progressively
-function renameBlock(b, varIndex) {
-    if(varIndex === undefined) varIndex = {};
+function renameBlock(b, readIndex, writeIndex) {
+    if(readIndex === undefined) readIndex = {};
+    if(writeIndex === undefined) writeIndex = {};
 
     // rename each variable in instruction in SSA form
     let ilcode = [];
@@ -25,14 +26,15 @@ function renameBlock(b, varIndex) {
         let ins = b.ilcode[i];
 
         if(isVar(ins.w)) {
-            varIndex[ins.w.v] = getSSAIndex(ins.w, varIndex) + 1;
-            ins.w = getSSAForm(ins.w, varIndex);
+            if(!writeIndex[ins.w.v]) writeIndex[ins.w.v] = 0;
+            readIndex[ins.w.v] = writeIndex[ins.w.v] = writeIndex[ins.w.v] + 1;
+            ins.w = getSSAForm(ins.w, readIndex);
         }
         if(isVar(ins.r1)) {
-            ins.r1 = getSSAForm(ins.r1, varIndex);
+            ins.r1 = getSSAForm(ins.r1, readIndex);
         }
         if(isVar(ins.r2)) {
-            ins.r2 = getSSAForm(ins.r2, varIndex);
+            ins.r2 = getSSAForm(ins.r2, readIndex);
         }
         ilcode.push(ins);
     }
@@ -45,18 +47,19 @@ function renameBlock(b, varIndex) {
         for(let v in phis) {
             let phi = phis[v];
 
-            let index = varIndex[v];
+            let index = readIndex[v];
+            // if the variable is unknow on that path, skip it
             if(index === undefined)
                 continue;
 
             // find the index of the current block in the current block predecessor
             let ipred = n.predecessors.indexOf(b);
-            phi.r[ipred] = getSSAForm(phi.w, varIndex);
+            phi.r[ipred] = getSSAForm(phi.w, readIndex);
 
-            // increment the index of phi if this wasn't already done
-            if(!phi.wUpdated) {
-                varIndex[v]++;
-                phi.w = getSSAForm(phi.w, varIndex);
+            // increment the index of phi, but only do it if it wasn't in ssa form already
+            if(!phi.w.ssa) {
+                readIndex[v] = writeIndex[v] = writeIndex[v] + 1;
+                phi.w = getSSAForm(phi.w, readIndex);
 
                 if(b.func.variables[phi.w.v])
                     phi.w.address = b.func.variables[phi.w.v].address;
@@ -70,7 +73,7 @@ function renameBlock(b, varIndex) {
 
     // recurse through dominated nodes giving a copy of the current index of variables
     for(let ic in b.children) {
-        renameBlock(b.children[ic], varIndex);
+        renameBlock(b.children[ic], {...readIndex}, writeIndex);
     }
 }
 

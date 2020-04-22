@@ -172,7 +172,7 @@ function buildLiveVariable(n) {
     let liveVariables = {};
     for (let s of n.successors) {
         liveVariables = {
-            ...buildLiveVariable(s)
+            ...liveVariables, ...buildLiveVariable(s)
         };
     }
 

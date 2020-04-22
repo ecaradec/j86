@@ -2,6 +2,13 @@ FUNCTION sum(a, b) {
     RETURN a + b;
 }
 
+FUNCTION fact(i) {
+    IF( i == 1 ) { 
+        RETURN 1;
+    }
+    RETURN i * fact(i-1);
+}
+
 FUNCTION main() {
     a = 1;
 
@@ -26,5 +33,12 @@ FUNCTION main() {
         print("WHILE OK");
     } ELSE {
         print("WHILE NOK");
+    }
+
+    a = fact(5);
+    IF( a == 120 ) {
+        print("RECURSION OK");
+    } ELSE {
+        print("RECURSION NOK");
     }
 }

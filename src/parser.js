@@ -272,7 +272,18 @@ function parseIfStatement(b) {
         eatToken('}');
     }
 
-    const endBlock = new Block([trueBlock, falseBlock]);
+    let predecessors = [];
+    if(!falseBlock.hasReturn)
+        predecessors.push(falseBlock);
+    if(!trueBlock.hasReturn)
+        predecessors.push(trueBlock);
+        
+    // if all path returns then it's as if this block also returns
+    // this also means that we have dead code, and that we could drop extra code in the statement
+    const endBlock = new Block(predecessors);
+    if(predecessors.length == 0) {
+        endBlock.hasReturn = true;
+    }
     trueBlock.emit({
         op: 'jmp',
         label: endBlock.name
@@ -329,9 +340,9 @@ function parseStatement(b) {
     } else if (getToken().t == 'FUNCTION') {
         return parseFunction(b);
     } else if (getToken().t == 'RETURN') {
-        const rBlock = new Block([b]);
+        //const rBlock = new Block([b]);
         parseReturn(b);
-        return rBlock;
+        return b;
     } else throw `Expected IF/WHILE/NAME/FUNCTION or CALL but got ${getToken().t}`;
     return b;
 }
@@ -409,6 +420,7 @@ function parseReturn(b) {
     b.emit({
         op: 'return'
     });
+    b.hasReturn = true;
     return b;
 }
 
@@ -418,7 +430,7 @@ function parseFunctionCall(name, b) {
     if (functionDeclarations[name.v] === undefined) {
         throw `Function ${name.v} doesnt exists`;
     }
-    let argumentsCount = 1;
+
     let args = [];
     if (getToken().t != ')') {
         b = parseValue(b);
@@ -433,10 +445,9 @@ function parseFunctionCall(name, b) {
     }
     eatToken(')');
 
-    retIndex++;
-    const retValue = declareLocalVariable(b, {t:'VAR', v: '_ret_'+retIndex});
+    const ret = declareLocalVariable(b, {t:'VAR', v: '_ret'+retIndex++});
     const tmp = getRegister();
-    b.emit({op: 'ptrOf', w: tmp, r1: retValue});
+    b.emit({op: 'ptrOf', w: tmp, r1: ret});
     
     args.push(tmp);
 
@@ -445,9 +456,12 @@ function parseFunctionCall(name, b) {
     }
 
     args.reverse().forEach((v)=>b.emit({op: 'push', r1:v}));
-    b.emit({op: 'call', name: name.v});
+    b.emit({op: 'call', name: name.v, ret: ret});
 
-    vstack.push(retValue);
+    const o = getRegister();
+    b.emit({op: '=', w: o, r1: ret});
+
+    vstack.push(o);
 
     return b;
 }

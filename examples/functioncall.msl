@@ -1,0 +1,12 @@
+FUNCTION sum(a, b) {
+    RETURN a + b;
+}
+
+FUNCTION main() {
+    a = sum(1,1);
+    IF( a == 2) {
+        print("CALL OK");
+    } ELSE {
+        print("CALL NOK");
+    }
+}

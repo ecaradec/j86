@@ -50,8 +50,27 @@ function printAssembly(b) {
     let trueCond, falseCond;
     for (const ins of b.ilcode) {
         if (ins.op == '*') {
-            printIns(`mov ${v(ins.w)}, ${v(ins.r1)}`);
-            printIns(`mul ${v(ins.w)}, ${v(ins.r2)}`);
+            if(ins.w.reg == 'eax') {
+                printIns(`mov eax, ${v(ins.r1)}`);
+                printIns(`mul ${v(ins.r2)}`);
+            } else if(ins.r1.reg == 'eax') {
+                printIns('push eax');
+                printIns(`mul ${v(ins.r2)}`);
+                printIns(`mov ${v(ins.w)}, eax`);
+                printIns('pop eax');
+            } else if(ins.r2.reg == 'eax') {
+                printIns('push eax');
+                printIns(`mul ${v(ins.r1)}`);
+                printIns(`mov ${v(ins.w)}, eax`);
+                printIns('pop eax');
+            } else {
+                printIns('push eax');
+                printIns(`mov eax, ${v(ins.r1)}`);
+                printIns(`mul ${v(ins.r2)}`);
+                printIns(`mov ${v(ins.w)}, eax`);
+                printIns('pop eax');
+                // throw 'spill register with mul not implemented';
+            }
         } else if (ins.op == '+') {
             printIns(`mov ${v(ins.w)}, ${v(ins.r1)}`);
             printIns(`add ${v(ins.w)}, ${v(ins.r2)}`);

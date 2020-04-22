@@ -1,0 +1,11 @@
+FUNCTION main() {
+    a = 1;
+
+    IF( a == 1 ) {
+        b = a;
+    } ELSE {
+        b = a;
+        a = 3;
+    }
+    c = a;
+}
