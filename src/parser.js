@@ -325,26 +325,22 @@ function parseWhileStatement(b) {
 function parseStatement(b) {
     if (getToken().t == 'IF') {
         return parseIfStatement(b);
-    }
-    if (getToken().t == 'WHILE') {
+    } else if (getToken().t == 'WHILE') {
         return parseWhileStatement(b);
-    }
-    if (getToken().t == 'NAME' || getToken().t == 'PRODUCT') {
-        //const name = eatToken('NAME');
+    } else if (getToken().t == 'NAME' || getToken().t == 'PRODUCT') {
+        // name or pointer
         b = parseValue(b);
         let dst = vstack.pop();
         if (getToken().t == 'EQUAL') {
             b = parseAssignment(dst, b);
         }
         eatToken(';');
-    } else if (getToken().t == 'FUNCTION') {
-        return parseFunction(b);
-    } else if (getToken().t == 'RETURN') {
-        //const rBlock = new Block([b]);
-        parseReturn(b);
         return b;
-    } else throw `Expected IF/WHILE/NAME/FUNCTION or CALL but got ${getToken().t}`;
-    return b;
+    } else if (getToken().t == 'RETURN') {
+        return parseReturn(b);
+    } else {
+        throw `Expected IF/WHILE/NAME/FUNCTION or CALL but got ${getToken().t}`;
+    }
 }
 
 function parseFunction(b) {
@@ -458,10 +454,7 @@ function parseFunctionCall(name, b) {
     args.reverse().forEach((v)=>b.emit({op: 'push', r1:v}));
     b.emit({op: 'call', name: name.v, ret: ret});
 
-    const o = getRegister();
-    b.emit({op: '=', w: o, r1: ret});
-
-    vstack.push(o);
+    vstack.push(ret);
 
     return b;
 }
