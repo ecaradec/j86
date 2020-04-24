@@ -504,6 +504,6 @@ module.exports = {
         ast = parseProgram();
     },
     getStrings: () => strings,
-    getAST: () => ast,
+    getStartBlock: () => ast,
     getBlockList: () => blockList
 };

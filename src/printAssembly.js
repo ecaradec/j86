@@ -215,6 +215,6 @@ print:
 section .data`);
 
     for (let s in strings) {
-        console.log(`    ${s} db	 '${strings[s]}', 0x0d, 0`);
+        console.log(`    ${s} db	 '${strings[s]}', 0x0a, 0`);
     }
 };

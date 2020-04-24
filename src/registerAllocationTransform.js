@@ -100,11 +100,12 @@ function findVariableMapping() {
         if (k < 3);
         else {
             availableRegisters[`s${k}`] = {
-                t: 'REG',
+                t: 'VAR',
                 k: `s${k}`,
                 v: `s${k}`,
                 address: `ebp-${4 * k + 4}`,
                 index: k,
+                spill: true
             };
         }
         k++;
@@ -211,8 +212,10 @@ function replaceVariables(n, registers) {
             n.func.varCount = max(n.func.varCount, registers[i].index + 1);
             if (registers[i].t == 'REG')
                 n.func.usedRegisters[registers[i].v] = true;
-            else
+            else {
                 registers[i].spill = true;
+                registers[i].t = 'VAR';
+            }
         }
     }
 
@@ -221,21 +224,24 @@ function replaceVariables(n, registers) {
         const ins = n.ilcode[ii];
 
         if (isRegister(ins.r1)) {
+            ins.r1.t = registers[ins.r1.ssa].t;
             ins.r1.reg = registers[ins.r1.ssa].v;
             ins.r1.address = registers[ins.r1.ssa].address;
         }
 
         if (isRegister(ins.r2)) {
+            ins.r2.t = registers[ins.r2.ssa].t;
             ins.r2.reg = registers[ins.r2.ssa].v;
             ins.r2.address = registers[ins.r2.ssa].address;
         }
 
         if (isRegister(ins.w)) {
+            ins.w.t = registers[ins.w.ssa].t;
             ins.w.reg = registers[ins.w.ssa].v;
             ins.w.address = registers[ins.w.ssa].address;
         }
 
-        // drop instruction that move register to iself
+        // drop instructions that move register to iself
         // if (ins.op == '=' && ins.w != undefined && ins.w.reg == ins.r1.reg && ins.r2 == undefined) {
         //     continue;
         //}

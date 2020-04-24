@@ -77,9 +77,6 @@ function renameBlock(b, readIndex, writeIndex) {
     }
 }
 
-let nodes;
-module.exports = function(nodes_) {
-    nodes = nodes_;
-
-    renameBlock(nodes[0]);
+module.exports = function(startNode) {
+    renameBlock(startNode);
 };

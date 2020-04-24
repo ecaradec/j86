@@ -12,6 +12,7 @@
 *   [x] support of printing
 *   [x] support of global variables ?
 *   [x] output to NASM format ?
+*   [ ] replace load and store by marking variables on SSA on first use (and only use store explicitly)
 *   [ ] support of types (int and int*)
 *   [ ] use a keyword for declaring value instead of just initializing it ?
 *   [ ] let functions returns values by pointer or in eax depending of size
