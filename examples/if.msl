@@ -1,9 +1,9 @@
 FUNCTION main() {
     a = 1;
     IF( a == 1 ) {
-        str = "Hello";
+        str = "IF OK";
     } ELSE {
-        str = "World";
+        str = "IF NOK";
     }
     print(str);
 }

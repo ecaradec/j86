@@ -50,41 +50,23 @@ function printAssembly(b) {
     let trueCond, falseCond;
     for (const ins of b.ilcode) {
         if (ins.op == '*') {
-            if(ins.w.reg == 'eax') {
-                printIns(`mov eax, ${v(ins.r1)}`);
-                printIns(`mul ${v(ins.r2)}`);
-            } else if(ins.r1.reg == 'eax') {
-                printIns('push eax');
-                printIns(`mul ${v(ins.r2)}`);
-                printIns(`mov ${v(ins.w)}, eax`);
-                printIns('pop eax');
-            } else if(ins.r2.reg == 'eax') {
-                printIns('push eax');
-                printIns(`mul ${v(ins.r1)}`);
-                printIns(`mov ${v(ins.w)}, eax`);
-                printIns('pop eax');
-            } else {
-                printIns('push eax');
-                printIns(`mov eax, ${v(ins.r1)}`);
-                printIns(`mul ${v(ins.r2)}`);
-                printIns(`mov ${v(ins.w)}, eax`);
-                printIns('pop eax');
-                // throw 'spill register with mul not implemented';
-            }
+            printIns(`mov eax, ${v(ins.r1)}`);
+            printIns(`mul ${v(ins.r2)}`);
+            printIns(`mov ${v(ins.w)}, eax`);
         } else if (ins.op == '+') {
-            printIns(`mov ${v(ins.w)}, ${v(ins.r1)}`);
-            printIns(`add ${v(ins.w)}, ${v(ins.r2)}`);
+            printIns(`mov eax, ${v(ins.r1)}`);
+            printIns(`add eax, ${v(ins.r2)}`);
+            printIns(`mov ${v(ins.w)}, eax`);
         } else if (ins.op == '-') {
-            printIns(`mov ${v(ins.w)}, ${v(ins.r1)}`);
-            printIns(`sub ${v(ins.w)}, ${v(ins.r2)}`);
+            printIns(`mov eax, ${v(ins.r1)}`);
+            printIns(`sub eax, ${v(ins.r2)}`);
+            printIns(`mov ${v(ins.w)}, eax`);
         } else if (ins.op == '=') {
             if (ins.w.v != ins.r1.v) {
                 // if both variable are in memory, use eax to transfer
                 if (ins.w.spill && ins.r1.spill) {
-                    printIns('push eax');
                     printIns(`mov eax, ${v(ins.r1)}`);
                     printIns(`mov ${v(ins.w)}, eax`);
-                    printIns('pop eax');
                 } else {
                     printIns(`mov ${v(ins.w)}, ${v(ins.r1)}`);
                 }
@@ -97,10 +79,18 @@ function printAssembly(b) {
         } else if(ins.op == 'store') {
             printIns(`mov ${indirect(ins.r1)}, ${v(ins.r2)}`);
         } else if (ins.op == '==') {
+            if(ins.r1.t == 'DIGIT' && ins.r2.t == 'DIGIT') { 
+                printIns(`mov eax, ${v(ins.r1)}`);
+                ins.r1 = {t: 'REG', reg: 'eax'};
+            }
             printIns(`cmp ${v(ins.r1)}, ${v(ins.r2)}`);
             trueCond = 'e';
             falseCond = 'ne';
         } else if (ins.op == '!=') {
+            if(ins.r1.t == 'DIGIT' && ins.r2.t == 'DIGIT') { 
+                printIns(`mov eax, ${v(ins.r1)}`);
+                ins.r1 = {t: 'REG', v: 'eax'};
+            }
             printIns(`cmp ${v(ins.r1)}, ${v(ins.r2)}`);
             trueCond = 'ne';
             falseCond = 'e';
@@ -126,7 +116,7 @@ function printAssembly(b) {
                 printIns('push', registers[j]);
             }
         } else if (ins.op === 'functionEnd') {
-            if (getPrevIns(b).op != 'return') {
+            //if (getPrevIns(b).op != 'return') {
                 // don't add ret if previous ins was return
                 let registers = Object.keys(b.func.usedRegisters).reverse();
                 for (var r in registers) {
@@ -134,7 +124,7 @@ function printAssembly(b) {
                 }
                 printIns('leave');
                 printIns('ret', b.func.argCount * 4);
-            }
+            //}
         } else if (ins.op == 'return') {
             // printIns(`mov eax, ${ins.r1.v}`);
             let registers = Object.keys(b.func.usedRegisters).reverse();
@@ -210,7 +200,7 @@ print:
     pop ecx
     pop ebx
     pop ebp
-    ret
+    ret 8
 
 section .data`);
 

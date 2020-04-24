@@ -1,8 +1,11 @@
 FUNCTION main() {
     a = 0;
     WHILE(a != 10) {
-        print("hello");
         a = a + 1;
     }
-    b = a;
+    IF(a == 10) {
+        print("WHILE OK");
+    } ELSE {
+        print("WHILE NOK");
+    }
 }

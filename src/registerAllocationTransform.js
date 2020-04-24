@@ -65,12 +65,7 @@ function findVariableMapping() {
     addVertex(dropped.id);
     // EAX is always used as a temporary
     const availableRegisters = {
-        eax: {
-            t: 'REG',
-            k: 'eax',
-            v: 'eax',
-            index: 0
-        },
+
         ebx: {
             t: 'REG',
             k: 'ebx',
@@ -174,14 +169,6 @@ function buildLiveVariableGraph(n) {
             liveVariables[ins.w.ssa] = true;
         }
 
-        if (isRegister(ins.r1)) {
-            liveVariables[ins.r1.ssa] = true;
-        }
-
-        if (isRegister(ins.r2)) {
-            liveVariables[ins.r2.ssa] = true;
-        }
-
         addFullyLinkedVertices(Object.keys(liveVariables));
 
         //
@@ -190,6 +177,14 @@ function buildLiveVariableGraph(n) {
         // Propagate read variables backwards / Delete written variable
         if (isRegister(ins.w)) {
             delete liveVariables[ins.w.ssa];
+        }
+
+        if (isRegister(ins.r1)) {
+            liveVariables[ins.r1.ssa] = true;
+        }
+
+        if (isRegister(ins.r2)) {
+            liveVariables[ins.r2.ssa] = true;
         }
 
         addFullyLinkedVertices(Object.keys(liveVariables));

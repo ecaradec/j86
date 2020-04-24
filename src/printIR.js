@@ -4,11 +4,12 @@ function toStringIR(b) {
     const v = (x) => {
         // return JSON.stringify(x);
         const reg = x.reg ? ':'+x.reg:'';
-        const address = x.address ? ':['+x.address+']':'';
+        //const address = x.address ? ':['+x.address+']':'';
         return (x.ssa?x.ssa:x.v)+reg;//+address;
     };
     const text = [];
     for (let ins of b.ilcode) {
+        //console.log(JSON.stringify(ins));
         // text.push(JSON.stringify(ins));
         if (ins.op == '*') {
             text.push(`${v(ins.w)} := ${v(ins.r1)} * ${v(ins.r2)}`);

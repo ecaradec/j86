@@ -6,8 +6,6 @@ let {
     eatToken
 } = require('./tokenizer');
 
-const getRegister = require('./register');
-
 function Block(predecessors) {
     blockList.push(this);
 
@@ -93,7 +91,7 @@ function parseTerm(b) {
         }
         // const name = eatToken('NAME');
         // indicate that we want the address of the variable
-        const w = getRegister();
+        const w = getTempVar();
         b.emit({op: 'ptrOf', w: w, r1: getAddress(b, v) });
         vstack.push(w);
     } else if (getToken().t == 'PRODUCT') {
@@ -129,7 +127,7 @@ function parseSum(b) {
 
         const op2 = popRHS(b);
         const op1 = popRHS(b);
-        const dst = getRegister();
+        const dst = getTempVar();
 
         if (s.v == '+') {
             b.emit({
@@ -159,14 +157,20 @@ function parseValue(b) {
         stringIndex++;
         strings[`str${stringIndex}`] = tk.v;
         let v = {
-            t: 'GLOBALVAR',
-            v: `str${stringIndex}`
+            t: 'LABEL',
+            v: `str${stringIndex}`,
+            address: `str${stringIndex}`
         };
         blockList[0].variables[`str${stringIndex}`] = v;
         pushVStack(v);
         return b;
     }
     return parseSum(b);
+}
+
+let tmpIndex = 0;
+function getTempVar() {
+    return {t: 'VAR', v: 'tmp'+tmpIndex++};
 }
 
 function parseProduct(b) {
@@ -176,7 +180,7 @@ function parseProduct(b) {
         b = parseProduct(b);
         const op2 = popRHS(b);
         const op1 = popRHS(b);
-        const dst = getRegister();
+        const dst = getTempVar();
 
         b.emit({
             op: '*',
@@ -215,7 +219,7 @@ function parseAssignment(dst, b) {
 }
 
 function parseCondStatement(b) {
-    parseSum(b);
+    b = parseSum(b);
     let op;
     if (getToken().t == '==') {
         eatToken('==');
@@ -226,7 +230,7 @@ function parseCondStatement(b) {
     } else {
         throw 'Expected token to be == or !=';
     }
-    parseSum(b);
+    b = parseSum(b);
     const v2 = popRHS(b);
     const v1 = popRHS(b);
     const tmp = {
@@ -239,6 +243,7 @@ function parseCondStatement(b) {
         r1: v1,
         r2: v2,
     });
+    return b;
 }
 
 function parseIfStatement(b) {
@@ -281,6 +286,7 @@ function parseIfStatement(b) {
     // if all path returns then it's as if this block also returns
     // this also means that we have dead code, and that we could drop extra code in the statement
     const endBlock = new Block(predecessors);
+    endBlock.func = b.func;
     if(predecessors.length == 0) {
         endBlock.hasReturn = true;
     }
@@ -409,7 +415,7 @@ function parseReturn(b) {
     eatToken('RETURN');
     b = parseSum(b);
     const r1 = popRHS(b);
-    const w = getRegister();
+    const w = getTempVar();
     b.emit({op: '=', w: w, r1: b.func.args['_retptr']});
     b.emit({op: 'store', r1: w, r2: r1});
     eatToken(';');
@@ -442,7 +448,7 @@ function parseFunctionCall(name, b) {
     eatToken(')');
 
     const ret = declareLocalVariable(b, {t:'VAR', v: '_ret'+retIndex++});
-    const tmp = getRegister();
+    const tmp = getTempVar();
     b.emit({op: 'ptrOf', w: tmp, r1: ret});
     
     args.push(tmp);

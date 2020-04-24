@@ -14,60 +14,61 @@ const dropUnusedTransform = require('./dropUnusedTransform');
 var fs = require('fs');
 
 fs.readFile(process.argv[2], 'utf8', function(err, program) {
-    parser.build(program);
-    buildDominance(parser.getStartBlock());
-    frontierSSATransform(parser.getStartBlock());
-    loadAndStoreTransform(parser.getStartBlock());
-    valuePropagationTransform(parser.getStartBlock());
-    dropUnusedTransform(parser.getStartBlock());
-    phiToIRTransform(parser.getStartBlock());
-    registerAllocationTransform(parser.getStartBlock());
-    printAssembly(parser.getBlockList(), parser.getStrings());  
+    if(process.argv[3] === undefined) {
+        parser.build(program);
+        buildDominance(parser.getStartBlock());
+        frontierSSATransform(parser.getStartBlock());
+        valuePropagationTransform(parser.getStartBlock());
+        dropUnusedTransform(parser.getStartBlock());
+        phiToIRTransform(parser.getStartBlock());
+        loadAndStoreTransform(parser.getStartBlock());
+        registerAllocationTransform(parser.getStartBlock());
+        printAssembly(parser.getBlockList(), parser.getStrings());
+        return;
+    }
 
-    return;
+    if(process.argv[3] === '--debug') {
+        console.log('* PARSING *');
+        parser.build(program);
+        printIR(parser.getBlockList());
+        console.log('');
 
-    console.log('* PARSING *');
-    parser.build(program);
-    printIR(parser.getBlockList());
-    console.log('');
+        console.log('* DOMINANCE & PHI INSERTION *');
+        buildDominance(parser.getStartBlock());
+        printIR(parser.getBlockList());
+        console.log('');
 
-    console.log('* DOMINANCE & PHI INSERTION *');
-    buildDominance(parser.getStartBlock());
-    printIR(parser.getBlockList());
-    console.log('');
+        console.log('* SSA TRANSFORM *');
+        frontierSSATransform(parser.getStartBlock());
+        printIR(parser.getBlockList());
+        console.log('');
+        
+        console.log('* VALUE PROPAGATION TRANSFORM *');
+        valuePropagationTransform(parser.getStartBlock());
+        printIR(parser.getBlockList());
+        console.log('');
 
-    console.log('* SSA TRANSFORM *');
-    frontierSSATransform(parser.getStartBlock());
-    printIR(parser.getBlockList());
-    console.log('');
+        console.log('* DROP UNUSED TRANSFORM *');
+        dropUnusedTransform(parser.getStartBlock());
+        printIR(parser.getBlockList());
+        console.log('');
 
-    console.log('* LOAD AND STORE TRANSFORM *');
-    loadAndStoreTransform(parser.getStartBlock());
-    printIR(parser.getBlockList());
-    console.log('');
-    
-    //return;
-/*
-    console.log('* VALUE PROPAGATION TRANSFORM *');
-    valuePropagationTransform(parser.getStartBlock());
-    printIR(parser.getBlockList());
-    console.log('');
+        console.log('* PHI RESOLUTION TRANSFORM *');
+        phiToIRTransform(parser.getStartBlock());
+        printIR(parser.getBlockList());
+        console.log('');
 
-    console.log('* DROP UNUSED TRANSFORM *');
-    dropUnusedTransform(parser.getStartBlock());
-    printIR(parser.getBlockList());
-    console.log('');
-*/
-    console.log('* PHI RESOLUTION TRANSFORM *');
-    phiToIRTransform(parser.getStartBlock());
-    printIR(parser.getBlockList());
-    console.log('');
+        console.log('* LOAD AND STORE TRANSFORM *');
+        loadAndStoreTransform(parser.getStartBlock());
+        printIR(parser.getBlockList());
+        console.log('');
 
-    console.log('* REGISTER ALLOCATION TRANSFORM *');
-    registerAllocationTransform(parser.getStartBlock());
-    printIR(parser.getBlockList());
-    console.log('');
+        console.log('* x86 REGISTER ALLOCATION TRANSFORM *');
+        registerAllocationTransform(parser.getStartBlock());
+        printIR(parser.getBlockList());
+        console.log('');
 
-    console.log('* x86 ASSEMBLY TRANSFORM *');
-    printAssembly(parser.getBlockList(), parser.getStrings());    
+        console.log('* x86 ASSEMBLY TRANSFORM *');
+        printAssembly(parser.getBlockList(), parser.getStrings());    
+    }
 });

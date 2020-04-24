@@ -18,7 +18,7 @@ function phiToIRTransform(n) {
             let lastJump;
             let lastCond;
 
-            if (ass.length > 1) {
+            if (ass.length > 0) {
                 let lastOp = ass[ass.length - 1].op;
                 if (
                     lastOp == 'jmp'

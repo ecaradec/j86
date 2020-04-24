@@ -1,1 +1,1 @@
-docker-compose run nasm sh /code/build.sh
+docker-compose run nasm sh /code/build.sh $1
