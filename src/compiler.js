@@ -18,8 +18,8 @@ fs.readFile(process.argv[2], 'utf8', function(err, program) {
         parser.build(program);
         let dominance = buildDominance(parser.getStartBlock());
         let dominanceOrderList = dominance.getDominanceOrderNodeList(parser.getStartBlock());
-        frontierSSATransform(parser.getStartBlock());
-        valuePropagationTransform(parser.getStartBlock());
+        frontierSSATransform(dominanceOrderList);
+        valuePropagationTransform(dominanceOrderList);
         dropUnusedTransform(parser.getStartBlock());
         phiToIRTransform(parser.getStartBlock());
         loadAndStoreTransform(dominanceOrderList);
@@ -41,12 +41,12 @@ fs.readFile(process.argv[2], 'utf8', function(err, program) {
         console.log('');
 
         console.log('* SSA TRANSFORM *');
-        frontierSSATransform(parser.getStartBlock());
+        frontierSSATransform(dominanceOrderList);
         printIR(parser.getBlockList());
         console.log('');
         
         console.log('* VALUE PROPAGATION TRANSFORM *');
-        valuePropagationTransform(parser.getStartBlock());
+        valuePropagationTransform(dominanceOrderList);
         printIR(parser.getBlockList());
         console.log('');
 
