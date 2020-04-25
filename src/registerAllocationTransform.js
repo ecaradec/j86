@@ -141,116 +141,116 @@ function isRegister(v) {
 // Parse the code backward, add vertex for each variable when the variable is read,
 // remove the vertex when the variable is written. This allows to build the range
 // where the variable is live
-function buildLiveVariableGraph(n) {
-    if (n.visited == buildLiveVariableGraph) return;
-    n.visited = buildLiveVariableGraph;
+function buildLiveVariableGraph(nodes) {
+    for(let ib in nodes) {
+        let n = nodes[ib];
 
-    let liveVariables = {};
-    for (let s of n.successors) {
-        liveVariables = {
-            ...buildLiveVariableGraph(s)
-        };
+        let liveRegisters = {};
+        for (let s of n.successors) {
+            liveRegisters = {
+                ...liveRegisters, ...s.liveRegisters
+            };
+        }
+
+        // Propagate read variables for backward
+        // When a variable is read, it's added to the list of active variables
+        // When a variable is written, it is removed from the list of active variable
+        for (let i = n.ilcode.length - 1; i >= 0; i--) {
+            const ins = n.ilcode[i];
+            if (ins == undefined) {
+                continue;
+            }
+
+            //
+            // During and after instruction
+            //
+            // Ensure a variable is available to write
+            if (isRegister(ins.w)) {
+                liveRegisters[ins.w.ssa] = true;
+            }
+
+            addFullyLinkedVertices(Object.keys(liveRegisters));
+
+            //
+            // before instruction
+            //
+            // Propagate read variables backwards / Delete written variable
+            if (isRegister(ins.w)) {
+                delete liveRegisters[ins.w.ssa];
+            }
+
+            if (isRegister(ins.r1)) {
+                liveRegisters[ins.r1.ssa] = true;
+            }
+
+            if (isRegister(ins.r2)) {
+                liveRegisters[ins.r2.ssa] = true;
+            }
+
+            addFullyLinkedVertices(Object.keys(liveRegisters));
+        }
+
+        n.liveRegisters = liveRegisters;
     }
-
-    // Propagate read variables for backward
-    // When a variable is read, it's added to the list of active variables
-    // When a variable is written, it is removed from the list of active variable
-    for (let i = n.ilcode.length - 1; i >= 0; i--) {
-        const ins = n.ilcode[i];
-        if (ins == undefined) {
-            continue;
-        }
-
-        //
-        // During and after instruction
-        //
-        // Ensure a variable is available to write
-        if (isRegister(ins.w)) {
-            liveVariables[ins.w.ssa] = true;
-        }
-
-        addFullyLinkedVertices(Object.keys(liveVariables));
-
-        //
-        // before instruction
-        //
-        // Propagate read variables backwards / Delete written variable
-        if (isRegister(ins.w)) {
-            delete liveVariables[ins.w.ssa];
-        }
-
-        if (isRegister(ins.r1)) {
-            liveVariables[ins.r1.ssa] = true;
-        }
-
-        if (isRegister(ins.r2)) {
-            liveVariables[ins.r2.ssa] = true;
-        }
-
-        addFullyLinkedVertices(Object.keys(liveVariables));
-    }
-
-    return liveVariables;
 }
 
 function max(a, b) {
     return a > b ? a : b;
 }
 
-function replaceVariables(n, registers) {
-    if (n.visited == 'replaceVars') return;
-    n.visited = 'replaceVars';
+function replaceVariables(nodes, registers) {
+    
+    for(let ib in nodes) {
+        let n = nodes[ib];
 
-    if (n.func) {
-        for (var i in registers) {
-            // always reserve some space for variable in case we need to have a pointer
-            n.func.varCount = max(n.func.varCount, registers[i].index + 1);
-            if (registers[i].t == 'REG')
-                n.func.usedRegisters[registers[i].v] = true;
-            else {
-                registers[i].spill = true;
-                registers[i].t = 'VAR';
+        if (n.func) {
+            for (var i in registers) {
+                // always reserve some space for variable in case we need to have a pointer
+                n.func.varCount = max(n.func.varCount, registers[i].index + 1);
+                if (registers[i].t == 'REG')
+                    n.func.usedRegisters[registers[i].v] = true;
+                else {
+                    registers[i].spill = true;
+                    registers[i].t = 'VAR';
+                }
             }
         }
-    }
 
-    let ilcode = [];
-    for (let ii = 0; ii < n.ilcode.length; ii++) {
-        const ins = n.ilcode[ii];
+        let ilcode = [];
+        for (let ii = 0; ii < n.ilcode.length; ii++) {
+            const ins = n.ilcode[ii];
 
-        if (isRegister(ins.r1)) {
-            ins.r1.t = registers[ins.r1.ssa].t;
-            ins.r1.reg = registers[ins.r1.ssa].v;
-            ins.r1.address = registers[ins.r1.ssa].address;
+            if (isRegister(ins.r1)) {
+                ins.r1.t = registers[ins.r1.ssa].t;
+                ins.r1.reg = registers[ins.r1.ssa].v;
+                ins.r1.address = registers[ins.r1.ssa].address;
+            }
+
+            if (isRegister(ins.r2)) {
+                ins.r2.t = registers[ins.r2.ssa].t;
+                ins.r2.reg = registers[ins.r2.ssa].v;
+                ins.r2.address = registers[ins.r2.ssa].address;
+            }
+
+            if (isRegister(ins.w)) {
+                ins.w.t = registers[ins.w.ssa].t;
+                ins.w.reg = registers[ins.w.ssa].v;
+                ins.w.address = registers[ins.w.ssa].address;
+            }
+
+            // drop instructions that move register to iself
+            // if (ins.op == '=' && ins.w != undefined && ins.w.reg == ins.r1.reg && ins.r2 == undefined) {
+            //     continue;
+            //}
+            ilcode.push(ins);
         }
+        n.ilcode = ilcode;
 
-        if (isRegister(ins.r2)) {
-            ins.r2.t = registers[ins.r2.ssa].t;
-            ins.r2.reg = registers[ins.r2.ssa].v;
-            ins.r2.address = registers[ins.r2.ssa].address;
-        }
-
-        if (isRegister(ins.w)) {
-            ins.w.t = registers[ins.w.ssa].t;
-            ins.w.reg = registers[ins.w.ssa].v;
-            ins.w.address = registers[ins.w.ssa].address;
-        }
-
-        // drop instructions that move register to iself
-        // if (ins.op == '=' && ins.w != undefined && ins.w.reg == ins.r1.reg && ins.r2 == undefined) {
-        //     continue;
-        //}
-        ilcode.push(ins);
-    }
-    n.ilcode = ilcode;
-
-    for (let s of n.successors) {
-        replaceVariables(s, registers);
     }
 }
 
-module.exports = function (block) {
-    buildLiveVariableGraph(block);
+module.exports = function (nodes) {
+    buildLiveVariableGraph([...nodes].reverse());
     const mapping = findVariableMapping();
-    replaceVariables(block, mapping);
+    replaceVariables(nodes, mapping);
 };

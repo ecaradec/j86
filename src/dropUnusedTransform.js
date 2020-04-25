@@ -1,6 +1,7 @@
 'use strict';
 
 function dropUnusedTransform(nodes) {
+    nodes = [...nodes].reverse();
     for(let ib in nodes) {
         let b = nodes[ib];
 

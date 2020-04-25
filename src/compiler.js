@@ -20,10 +20,10 @@ fs.readFile(process.argv[2], 'utf8', function(err, program) {
         let dominanceOrderList = dominance.getDominanceOrderNodeList(parser.getStartBlock());
         frontierSSATransform(dominanceOrderList);
         valuePropagationTransform(dominanceOrderList);
-        dropUnusedTransform([...dominanceOrderList].reverse());
-        phiToIRTransform(parser.getStartBlock());
+        dropUnusedTransform(dominanceOrderList);
+        phiToIRTransform(dominanceOrderList);
         loadAndStoreTransform(dominanceOrderList);
-        registerAllocationTransform(parser.getStartBlock());
+        registerAllocationTransform(dominanceOrderList);
         printAssembly(parser.getBlockList(), parser.getStrings());
         return;
     }
@@ -51,12 +51,12 @@ fs.readFile(process.argv[2], 'utf8', function(err, program) {
         console.log('');
 
         console.log('* DROP UNUSED TRANSFORM *');
-        dropUnusedTransform([...dominanceOrderList].reverse());
+        dropUnusedTransform(dominanceOrderList);
         printIR(parser.getBlockList());
         console.log('');
 
         console.log('* PHI RESOLUTION TRANSFORM *');
-        phiToIRTransform(parser.getStartBlock());
+        phiToIRTransform(dominanceOrderList);
         printIR(parser.getBlockList());
         console.log('');
 
@@ -66,7 +66,7 @@ fs.readFile(process.argv[2], 'utf8', function(err, program) {
         console.log('');
 
         console.log('* x86 REGISTER ALLOCATION TRANSFORM *');
-        registerAllocationTransform(parser.getStartBlock());
+        registerAllocationTransform(dominanceOrderList);
         printIR(parser.getBlockList());
         console.log('');
 
