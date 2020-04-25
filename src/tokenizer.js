@@ -13,122 +13,40 @@ function eatToken(t) {
     program = program.replace(/^[ \n\t]*/, '');
     // console.log(program);
 
-    let m;
-    if ((m = program.match(/^([0-9]+)/)))
-        currentToken = {
-            t: 'DIGIT',
-            v: m[1],
-            l: m[1].length
-        };
-    else if ((m = program.match(/^([+-])/)))
-        currentToken = {
-            t: 'SUM',
-            l: 1,
-            v: m[1]
-        };
-    else if ((m = program.match(/^\*/)))
-        currentToken = {
-            t: 'PRODUCT',
-            l: 1
-        };
-    else if ((m = program.match(/^&/)))
-        currentToken = {
-            t: '&',
-            l: 1
-        };
-    else if ((m = program.match(/^(=) +/)))
-        currentToken = {
-            t: 'EQUAL',
-            l: 1
-        };
-    else if ((m = program.match(/^(==) +/)))
-        currentToken = {
-            t: '==',
-            l: 2
-        };
-    else if ((m = program.match(/^(!=) +/)))
-        currentToken = {
-            t: '!=',
-            l: 2
-        };
-    else if ((m = program.match(/^(WHILE)/)))
-        currentToken = {
-            t: 'WHILE',
-            l: 5
-        };
-    else if ((m = program.match(/^(FUNCTION)/)))
-        currentToken = {
-            t: 'FUNCTION',
-            l: 8
-        };
-    else if ((m = program.match(/^(CALL)/)))
-        currentToken = {
-            t: 'CALL',
-            l: 4
-        };
-    else if ((m = program.match(/^(RETURN)/)))
-        currentToken = {
-            t: 'RETURN',
-            l: 6
-        };
-    else if ((m = program.match(/^(IF)/)))
-        currentToken = {
-            t: 'IF',
-            l: 2
-        };
-    else if ((m = program.match(/^(ELSE)/)))
-        currentToken = {
-            t: 'ELSE',
-            l: 4
-        };
-    else if ((m = program.match(/^(\{)/)))
-        currentToken = {
-            t: '{',
-            l: 1
-        };
-    else if ((m = program.match(/^(\})/)))
-        currentToken = {
-            t: '}',
-            l: 1
-        };
-    else if ((m = program.match(/^(\()/)))
-        currentToken = {
-            t: '(',
-            l: 1
-        };
-    else if ((m = program.match(/^(\))/)))
-        currentToken = {
-            t: ')',
-            l: 1
-        };
-    else if ((m = program.match(/^(;)/)))
-        currentToken = {
-            t: ';',
-            l: 1
-        };
-    else if ((m = program.match(/^(,)/)))
-        currentToken = {
-            t: ',',
-            l: 1
-        };
-    else if ((m = program.match(/^([a-z]+)/)))
-        currentToken = {
-            t: 'NAME',
-            v: m[1],
-            l: m[1].length
-        };
-    else if ((m = program.match(/^("(.*)")/)))
-        currentToken = {
-            t: 'STRING',
-            v: m[2],
-            l: m[1].length
-        };
-    else if (program == '')
-        currentToken = {
-            t: 'END',
-            l: 0
-        };
-    else
+
+    let re = [
+        {rx: /^([0-9]+)/, tk: 'DIGIT'},
+        {rx: /^([+-])/, tk: 'SUM'},
+        {rx: /^\*/, tk: 'SUM'},
+        {rx: /^&/, tk: '&'},
+        {rx: /^(=) /, tk: 'EQUAL'},
+        {rx: /^(==) /, tk: '=='},
+        {rx: /^(!=) /, tk: '!='},
+        {rx: /^WHILE/, tk: 'WHILE'},
+        {rx: /^FUNCTION/, tk: 'FUNCTION'},
+        {rx: /^RETURN/, tk: 'RETURN'},
+        {rx: /^IF/, tk: 'IF'},
+        {rx: /^ELSE/, tk: 'ELSE'},
+        {rx: /^\{/, tk: '{'},
+        {rx: /^\}/, tk: '}'},
+        {rx: /^\(/, tk: '('},
+        {rx: /^\)/, tk: ')'},
+        {rx: /^;/, tk: ';'},
+        {rx: /^,/, tk: ','},
+        {rx: /^([a-z]+)/, tk: 'NAME'},
+        {rx: /^(".*")/, tk: 'STRING'},
+        {rx: /^$/, tk: 'END'}
+    ];
+
+    currentToken = undefined;
+    for(let i in re) {
+        let m = program.match(re[i].rx);
+        if(!m) continue;
+        const v = m[1]?m[1]:m[0];
+        currentToken = {t: re[i].tk, v, l: v.length};
+    }
+
+    if(!currentToken)
         throw `Unexpected character at ${program}`;
 
     return ret;

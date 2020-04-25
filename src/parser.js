@@ -160,7 +160,7 @@ function parseValue(b) {
     if (getToken().t == 'STRING') {
         var tk = eatToken('STRING');
         stringIndex++;
-        strings[`str${stringIndex}`] = tk.v;
+        strings[`str${stringIndex}`] = tk.v.replace(/(^"|"$)/g,'');
         let v = {
             t: 'LABEL',
             v: `str${stringIndex}`,
