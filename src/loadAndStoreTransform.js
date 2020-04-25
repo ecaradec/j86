@@ -19,65 +19,64 @@ const getRegister = require('./register.js');
 // r3_1 = r1_1 + r2_1
 // store r3_1, d.addr
 //
-function loadAndStoreTransform(b) {
-    let registerMapping = {};
-    for(let i in b.predecessors) {
-        let n = b.predecessors[i];
-        registerMapping = {...registerMapping, ...n.registerMapping};
-    }
-
-    // rename each variable in instruction in SSA form
-    let ilcode = [];
-    for(let i in b.ilcode) {
-        let ins = b.ilcode[i];
-
-        let load1, load2;
-        if(isVar(ins.r1) && ins.op != 'ptrOf') {
-            let r1;
-            if(registerMapping[ins.r1.ssa]) {
-                r1 = registerMapping[ins.r1.ssa];
-            } else {
-                r1 = getRegister();
-                load1 = {op: 'load', w: r1, r1: ins.r1 };
-                registerMapping[ins.r1.ssa] = r1;
-            }
-            ins.r1 = r1;
-        }
-        if(isVar(ins.r2) && ins.op != 'ptrOf') {
-            let r2;
-            if(registerMapping[ins.r2.ssa]) {
-                r2 = registerMapping[ins.r2.ssa];
-            } else {
-                r2 = getRegister();
-                load2 = {op: 'load', w: r2, r1: ins.r2 };
-                registerMapping[ins.r2.ssa] = r2;
-            }
-            ins.r2 = r2;
-        }
-        if(isVar(ins.w)) {
-            let w;
-            if(registerMapping[ins.w.ssa]) {
-                w = registerMapping[ins.w.ssa];
-            } else {
-                w = getRegister();
-                registerMapping[ins.w.ssa] = w;
-            }
-            ins.w = w;
+function loadAndStoreTransform(nodes) {
+    for(let j in nodes) {
+        let b = nodes[j];
+            
+        let registerMapping = {};
+        for(let i in b.predecessors) {
+            let n = b.predecessors[i];
+            registerMapping = {...registerMapping, ...n.registerMapping};
         }
 
-        if(load1)
-            ilcode.push(load1);
-        if(load2)
-            ilcode.push(load2);
-        ilcode.push(ins);
-    }
-    b.ilcode = ilcode;
+        // rename each variable in instruction in SSA form
+        let ilcode = [];
+        for(let i in b.ilcode) {
+            let ins = b.ilcode[i];
 
-    b.registerMapping = registerMapping;
+            let load1, load2;
+            if(isVar(ins.r1) && ins.op != 'ptrOf') {
+                let r1;
+                if(registerMapping[ins.r1.ssa]) {
+                    r1 = registerMapping[ins.r1.ssa];
+                } else {
+                    r1 = getRegister();
+                    load1 = {op: 'load', w: r1, r1: ins.r1 };
+                    registerMapping[ins.r1.ssa] = r1;
+                }
+                ins.r1 = r1;
+            }
+            if(isVar(ins.r2) && ins.op != 'ptrOf') {
+                let r2;
+                if(registerMapping[ins.r2.ssa]) {
+                    r2 = registerMapping[ins.r2.ssa];
+                } else {
+                    r2 = getRegister();
+                    load2 = {op: 'load', w: r2, r1: ins.r2 };
+                    registerMapping[ins.r2.ssa] = r2;
+                }
+                ins.r2 = r2;
+            }
+            if(isVar(ins.w)) {
+                let w;
+                if(registerMapping[ins.w.ssa]) {
+                    w = registerMapping[ins.w.ssa];
+                } else {
+                    w = getRegister();
+                    registerMapping[ins.w.ssa] = w;
+                }
+                ins.w = w;
+            }
 
-    // recurse through dominated nodes giving a copy of the current index of variables
-    for(let ic in b.children) {
-        loadAndStoreTransform(b.children[ic]);
+            if(load1)
+                ilcode.push(load1);
+            if(load2)
+                ilcode.push(load2);
+            ilcode.push(ins);
+        }
+        b.ilcode = ilcode;
+
+        b.registerMapping = registerMapping;
     }
 }
 

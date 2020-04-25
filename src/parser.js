@@ -15,6 +15,11 @@ function Block(predecessors) {
     this.variables = {};
     this.phis = {};
     this.name = `block_${blockId}`;
+    
+    // this will be used later in dominance
+    this.frontier = {};
+    this.parents = [];
+    this.children = [];
 
     if (predecessors.length > 0) {
         this.func = predecessors[0].func;

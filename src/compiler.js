@@ -16,12 +16,13 @@ var fs = require('fs');
 fs.readFile(process.argv[2], 'utf8', function(err, program) {
     if(process.argv[3] === undefined) {
         parser.build(program);
-        buildDominance(parser.getStartBlock());
+        let dominance = buildDominance(parser.getStartBlock());
+        let dominanceOrderList = dominance.getDominanceOrderNodeList(parser.getStartBlock());
         frontierSSATransform(parser.getStartBlock());
         valuePropagationTransform(parser.getStartBlock());
         dropUnusedTransform(parser.getStartBlock());
         phiToIRTransform(parser.getStartBlock());
-        loadAndStoreTransform(parser.getStartBlock());
+        loadAndStoreTransform(dominanceOrderList);
         registerAllocationTransform(parser.getStartBlock());
         printAssembly(parser.getBlockList(), parser.getStrings());
         return;
@@ -34,7 +35,8 @@ fs.readFile(process.argv[2], 'utf8', function(err, program) {
         console.log('');
 
         console.log('* DOMINANCE & PHI INSERTION *');
-        buildDominance(parser.getStartBlock());
+        let dominance = buildDominance(parser.getStartBlock());
+        let dominanceOrderList = dominance.getDominanceOrderNodeList(parser.getStartBlock());
         printIR(parser.getBlockList());
         console.log('');
 
@@ -59,7 +61,7 @@ fs.readFile(process.argv[2], 'utf8', function(err, program) {
         console.log('');
 
         console.log('* LOAD AND STORE TRANSFORM *');
-        loadAndStoreTransform(parser.getStartBlock());
+        loadAndStoreTransform(dominanceOrderList);
         printIR(parser.getBlockList());
         console.log('');
 

@@ -25,7 +25,7 @@ function backOrderTraverse(n) {
 //   ; reverse backorder ensure we are traversing dominant first except in the case of loop
 //     for each p in predecessors of n
 //       intersect the dominance list of all predecessors
-function dominance() {
+function dominance(nodes) {
     let doms = {};
     let changed = true;
     let reverseBackOrderNodes = [...nodes];
@@ -70,7 +70,7 @@ function dominance() {
 //
 // For each node, find the common dominant of all predecessor and mark all of 
 // them as dominance frontier
-function dominanceFrontier() {
+function dominanceFrontier(nodes, doms) {
     for(let i in nodes) {
         let b = nodes[i];
         if(b.predecessors && b.predecessors.length > 1) {
@@ -208,31 +208,40 @@ function buildLiveVariable(n) {
     return liveVariables;
 }
 
-let doms;
-
-let nodes;
-module.exports = function(ast) {
-    nodes = backOrderTraverse(ast).reverse();
-
-    for(let i in nodes) {
-        nodes[i].frontier = {};
-        nodes[i].parents = [];
-        nodes[i].children = [];
-    }
-
-    doms = dominance();
-    dominanceFrontier();
-
-    // build dominance tree
+function buildDominanceTree(nodes, doms) {
     for(let i=1; i<nodes.length; i++) {
         let n = nodes[i];
         let d = doms[n.name];
         n.parents.push(d);
         d.children.push(n);
     }
+}
+
+module.exports = function(ast) {
+    // Backorder traversal of the node graph.
+    let nodes = backOrderTraverse(ast).reverse();
+
+    let doms = dominance(nodes);
+    
+    dominanceFrontier(nodes, doms);
+
+    buildDominanceTree(nodes, doms);
 
     buildLiveVariable(nodes[0]);
 
     placePhiFunctions(nodes);
-    return nodes;
+
+    return {
+        getDominanceOrderNodeList: (b) => {
+            let results = [];
+            let f = (b) => {
+                results.push(b);
+                for(let ic in b.children) {
+                    f(b.children[ic]);
+                }
+            };
+            f(b);
+            return results;
+        }
+    };
 };
