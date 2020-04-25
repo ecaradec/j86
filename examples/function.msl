@@ -41,4 +41,16 @@ FUNCTION main() {
     } ELSE {
         print("RECURSION NOK");
     }
+
+    a = 1 + 1;
+    b = 1 + 1;
+    c = 1 + 1;
+    d = 1 + 1;
+    g = a+b+c+d;
+    z = d+d;
+    IF(g == 8) {
+        print("SPILL OK");
+    } ELSE {
+        print("SPILL NOK");
+    }
 }

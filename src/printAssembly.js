@@ -20,6 +20,9 @@ function printAssembly(b) {
     }
 
     const v = x => {
+        if(x.t == 'VAR')
+            return `dword [${x.address}]`;
+
         //return JSON.stringify(x);
         //return x.v;
         if(x.reg) {

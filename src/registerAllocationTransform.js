@@ -63,7 +63,8 @@ function findVariableMapping() {
 
     // build back graph and delete used registers
     addVertex(dropped.id);
-    // EAX is always used as a temporary
+    // EAX is always used as a temporary and possibly (not yet)
+    // as a return value, so it's not suitable to storage of variables
     const availableRegisters = {
 
         ebx: {
@@ -141,7 +142,7 @@ function isRegister(v) {
 // Parse the code backward, add vertex for each variable when the variable is read,
 // remove the vertex when the variable is written. This allows to build the range
 // where the variable is live
-function buildLiveVariableGraph(nodes) {
+function buildLiveRegisterGraph(nodes) {
     for(let ib in nodes) {
         let n = nodes[ib];
 
@@ -198,7 +199,7 @@ function max(a, b) {
     return a > b ? a : b;
 }
 
-function replaceVariables(nodes, registers) {
+function replaceRegisters(nodes, registers) {
     
     for(let ib in nodes) {
         let n = nodes[ib];
@@ -250,7 +251,7 @@ function replaceVariables(nodes, registers) {
 }
 
 module.exports = function (nodes) {
-    buildLiveVariableGraph([...nodes].reverse());
+    buildLiveRegisterGraph([...nodes].reverse());
     const mapping = findVariableMapping();
-    replaceVariables(nodes, mapping);
+    replaceRegisters(nodes, mapping);
 };
