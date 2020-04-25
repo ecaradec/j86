@@ -20,7 +20,7 @@ fs.readFile(process.argv[2], 'utf8', function(err, program) {
         let dominanceOrderList = dominance.getDominanceOrderNodeList(parser.getStartBlock());
         frontierSSATransform(dominanceOrderList);
         valuePropagationTransform(dominanceOrderList);
-        dropUnusedTransform(parser.getStartBlock());
+        dropUnusedTransform([...dominanceOrderList].reverse());
         phiToIRTransform(parser.getStartBlock());
         loadAndStoreTransform(dominanceOrderList);
         registerAllocationTransform(parser.getStartBlock());
@@ -51,7 +51,7 @@ fs.readFile(process.argv[2], 'utf8', function(err, program) {
         console.log('');
 
         console.log('* DROP UNUSED TRANSFORM *');
-        dropUnusedTransform(parser.getStartBlock());
+        dropUnusedTransform([...dominanceOrderList].reverse());
         printIR(parser.getBlockList());
         console.log('');
 
