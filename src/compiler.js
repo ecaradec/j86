@@ -10,6 +10,7 @@ const printAssembly = require('./printAssembly');
 const loadAndStoreTransform = require('./loadAndStoreTransform');
 const valuePropagationTransform = require('./valuePropagationTransform');
 const dropUnusedTransform = require('./dropUnusedTransform');
+const addressesTransform = require('./addressesTransform');
 
 var fs = require('fs');
 
@@ -24,6 +25,7 @@ fs.readFile(process.argv[2], 'utf8', function(err, program) {
         phiToIRTransform(dominanceOrderList);
         loadAndStoreTransform(dominanceOrderList);
         registerAllocationTransform(dominanceOrderList);
+        addressesTransform(dominanceOrderList);
         printAssembly(parser.getBlockList(), parser.getStrings());
         return;
     }
@@ -67,6 +69,11 @@ fs.readFile(process.argv[2], 'utf8', function(err, program) {
 
         console.log('* x86 REGISTER ALLOCATION TRANSFORM *');
         registerAllocationTransform(dominanceOrderList);
+        printIR(parser.getBlockList());
+        console.log('');
+
+        console.log('* x86 ADDRESSES TRANSFORM *');
+        addressesTransform(dominanceOrderList);
         printIR(parser.getBlockList());
         console.log('');
 

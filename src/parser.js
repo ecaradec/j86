@@ -71,16 +71,7 @@ function popRHS(b) {
 }
 
 function pushVStack(v) {
-    // delete v.l;
     vstack.push(v);
-}
-
-function getAddress(b, r) {
-    if(b.func.variables[r.v])
-        return b.func.variables[r.v];
-    if(b.func.args[r.v])
-        return b.func.args[r.v];
-    throw `Variable ${r.v} doesnt exists`;
 }
 
 function parseTerm(b) {
@@ -94,20 +85,10 @@ function parseTerm(b) {
         if(v.t != 'VAR') {
             throw 'Cant take a reference of '+v.t;
         }
-        // const name = eatToken('IDENTIFIER');
         // indicate that we want the address of the variable
         const w = getTempVar();
-        b.emit({op: 'ptrOf', w: w, r1: getAddress(b, v) });
+        b.emit({op: 'ptrOf', w: w, r1: v });
         vstack.push(w);
-    } else if (getToken().t == 'PRODUCT') {
-        eatToken('PRODUCT');
-        const name = eatToken('IDENTIFIER');
-        // indicate we want the data at the address
-        vstack.push({
-            t: 'VAR',
-            v: name.v,
-            mod: '*'
-        });
     } else if (getToken().t == 'IDENTIFIER') {
         const name = eatToken('IDENTIFIER');
         if(getToken().t == '(') {
@@ -117,7 +98,7 @@ function parseTerm(b) {
             if(!b.func.args[name.v] && !b.func.variables[name.v])
                 declareLocalVariable(b, {t: 'VAR', v: name.v});
 
-            vstack.push(getAddress(b, v));
+            vstack.push(v);
         }
     }
 
@@ -201,8 +182,7 @@ function parseProduct(b) {
 function declareLocalVariable(b, v) {
     if(b.func.variables[v.v])
         return b.func.variables[v.v];
-    b.func.varCount++;
-    b.func.variables[v.v] = {...v, address: `ebp-${4*b.func.varCount}`};
+    b.func.variables[v.v] = v;
     return b.func.variables[v.v];
 }
 
@@ -210,16 +190,14 @@ function parseAssignment(dst, b) {
     eatToken('EQUAL');
     b = parseValue(b);       // should be a rvalue
     const src = popLHS();
-    if(dst.mod == '*') {
-        b.emit({op: 'store', r1: dst, r2: src});
-    } else {
-        dst = declareLocalVariable(b, dst);
-        b.emit({
-            op: '=',
-            w: dst,
-            r1: src
-        });
-    }
+
+    dst = declareLocalVariable(b, dst);
+    b.emit({
+        op: '=',
+        w: dst,
+        r1: src
+    });
+    
     return b;
 }
 
@@ -378,8 +356,6 @@ function parseFunction(b) {
         f.args[n.v] = {
             t: 'VAR',
             v: n.v,
-            address: `ebp+${4 * i + 8}`,
-            index: i,
         };
         i++;
         while (getToken().t == ',') {
@@ -388,17 +364,14 @@ function parseFunction(b) {
             f.args[n.v] = {
                 t: 'VAR',
                 v: n.v,
-                address: `ebp+${4 * i + 8}`,
-                index: i,
             };
             i++;
         }
     }
     //f.args = b.variables;
-    f.args['_retptr'] = {t: 'VAR', v: '_retptr', address: `ebp+${4 * i + 8}`};
+    f.args['_retptr'] = {t: 'VAR', v: '_retptr'};
     i++;
-    b.func.argCount = i;
-    functionDeclarations[name.v] = i;
+    functionDeclarations[name.v] = b.func;
     eatToken(')');
     eatToken('{');
     b = parseStatementList(b);
@@ -458,7 +431,7 @@ function parseFunctionCall(name, b) {
     
     args.push(tmp);
 
-    if (functionDeclarations[name.v] !== args.length) {
+    if (Object.keys(functionDeclarations[name.v].args).length !== args.length) {
         throw `Function call "${name.v}" doesnt match declared arguments`;
     }
 
@@ -490,9 +463,7 @@ function parseProgram() {
 }
 
 const functionDeclarations = {
-    ok: 0,
-    nok: 0,
-    print: 2,
+    print: {args: ['str', 'retptr']},
 };
 
 let blockId = 0;

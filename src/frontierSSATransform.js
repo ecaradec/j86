@@ -17,8 +17,8 @@ function isVar(v) {
 }
 
 // Traverse the dominance tree, increasing variables index progressively
-function renameBlock(nodes, writeIndex) {
-    if(writeIndex === undefined) writeIndex = {};
+function renameBlock(nodes) {
+    let writeIndex = {};
     for(let ib in nodes) {
         let b = nodes[ib];
 
