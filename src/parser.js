@@ -94,22 +94,22 @@ function parseTerm(b) {
         if(v.t != 'VAR') {
             throw 'Cant take a reference of '+v.t;
         }
-        // const name = eatToken('NAME');
+        // const name = eatToken('IDENTIFIER');
         // indicate that we want the address of the variable
         const w = getTempVar();
         b.emit({op: 'ptrOf', w: w, r1: getAddress(b, v) });
         vstack.push(w);
     } else if (getToken().t == 'PRODUCT') {
         eatToken('PRODUCT');
-        const name = eatToken('NAME');
+        const name = eatToken('IDENTIFIER');
         // indicate we want the data at the address
         vstack.push({
             t: 'VAR',
             v: name.v,
             mod: '*'
         });
-    } else if (getToken().t == 'NAME') {
-        const name = eatToken('NAME');
+    } else if (getToken().t == 'IDENTIFIER') {
+        const name = eatToken('IDENTIFIER');
         if(getToken().t == '(') {
             b = parseFunctionCall(name, b);
         } else {
@@ -338,7 +338,7 @@ function parseStatement(b) {
         return parseIfStatement(b);
     } else if (getToken().t == 'WHILE') {
         return parseWhileStatement(b);
-    } else if (getToken().t == 'NAME' || getToken().t == 'PRODUCT') {
+    } else if (getToken().t == 'IDENTIFIER' || getToken().t == 'PRODUCT') {
         // name or pointer
         b = parseValue(b);
         let dst = vstack.pop();
@@ -356,7 +356,7 @@ function parseStatement(b) {
 
 function parseFunction(b) {
     eatToken('FUNCTION');
-    const name = eatToken('NAME');
+    const name = eatToken('IDENTIFIER');
 
     const functionStartLabel = name.v;
     const f = {
@@ -373,8 +373,8 @@ function parseFunction(b) {
     eatToken('(');
     //b.args = {};
     let i = 0;
-    if (getToken().t == 'NAME') {
-        var n = eatToken('NAME');
+    if (getToken().t == 'IDENTIFIER') {
+        var n = eatToken('IDENTIFIER');
         f.args[n.v] = {
             t: 'VAR',
             v: n.v,
@@ -384,7 +384,7 @@ function parseFunction(b) {
         i++;
         while (getToken().t == ',') {
             eatToken(',');
-            const n = eatToken('NAME');
+            const n = eatToken('IDENTIFIER');
             f.args[n.v] = {
                 t: 'VAR',
                 v: n.v,

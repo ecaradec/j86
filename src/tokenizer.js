@@ -17,11 +17,11 @@ function eatToken(t) {
     let re = [
         {rx: /^([0-9]+)/, tk: 'DIGIT'},
         {rx: /^([+-])/, tk: 'SUM'},
-        {rx: /^\*/, tk: 'SUM'},
+        {rx: /^\*/, tk: 'PRODUCT'},
         {rx: /^&/, tk: '&'},
-        {rx: /^(=) /, tk: 'EQUAL'},
-        {rx: /^(==) /, tk: '=='},
-        {rx: /^(!=) /, tk: '!='},
+        {rx: /^(==)/, tk: '=='},
+        {rx: /^(!=)/, tk: '!='},
+        {rx: /^(=)/, tk: 'EQUAL'},
         {rx: /^WHILE/, tk: 'WHILE'},
         {rx: /^FUNCTION/, tk: 'FUNCTION'},
         {rx: /^RETURN/, tk: 'RETURN'},
@@ -33,7 +33,7 @@ function eatToken(t) {
         {rx: /^\)/, tk: ')'},
         {rx: /^;/, tk: ';'},
         {rx: /^,/, tk: ','},
-        {rx: /^([a-z]+)/, tk: 'NAME'},
+        {rx: /^([a-z]+)/, tk: 'IDENTIFIER'},
         {rx: /^(".*")/, tk: 'STRING'},
         {rx: /^$/, tk: 'END'}
     ];
@@ -44,6 +44,7 @@ function eatToken(t) {
         if(!m) continue;
         const v = m[1]?m[1]:m[0];
         currentToken = {t: re[i].tk, v, l: v.length};
+        break;
     }
 
     if(!currentToken)
