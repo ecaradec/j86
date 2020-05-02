@@ -9,6 +9,7 @@
 // It also has for effect that spill variables space are reused if they
 // are not used anywhere else to reduce stack space reservation.
 const vertices = {};
+let callClobbered = {};
 
 function addVertex(n) {
     if (vertices[n] != undefined) return;
@@ -52,69 +53,76 @@ function dropVertex(n) {
     return cloned;
 }
 
+let spillReg = 0;
+function getRegister(a, spillRegisters) {
+    for(let i in a) {
+        return a[i];
+    }
+    for(let i in spillRegisters) {
+        return spillRegisters[i];
+    }
+    spillRegisters[`s${spillReg}`] = {
+        t: 'VAR',
+        v: `s${spillReg}`,
+    };
+    spillReg++;
+    return spillRegisters[`s${spillReg-1}`];
+}
+
 // Return a variable to register or variable to spill variable using graph coloring
-function findVariableMapping() {
+function findRegisterMapping() {
     const d = findLowestConnectedVertex();
     if (d == undefined) return;
 
     const dropped = dropVertex(d);
 
-    findVariableMapping();
+    findRegisterMapping();
 
     // build back graph and delete used registers
     addVertex(dropped.id);
     // EAX is always used as a temporary and possibly (not yet)
     // as a return value, so it's not suitable to storage of variables
-    const availableRegisters = {
-
+    let callPreservedRegisters = {
         ebx: {
             t: 'REG',
-            k: 'ebx',
             v: 'ebx',
-            index: 0
         },
-        ecx: {
+        esi: {
             t: 'REG',
-            k: 'ecx',
-            v: 'ecx',
-            index: 1
+            v: 'esi',
         },
-        edx: {
+        edi: {
             t: 'REG',
-            k: 'edx',
-            v: 'edx',
-            index: 3
+            v: 'edi',
         },
     };
 
-    // creates as many registers as there is variables, we'll try to use as few as possible
-    // stack variables can be reused just the same as register
-    // var availReg = {};
-    let k = 1;
-    for (let i in vertices) {
-        i;
-        if (k < 3);
-        else {
-            availableRegisters[`s${k}`] = {
-                t: 'VAR',
-                k: `s${k}`,
-                v: `s${k}`,
-                address: `ebp-${4 * k + 4}`,
-                index: k,
-                spill: true
-            };
-        }
-        k++;
-    }
-    // var availReg = {'EBX':true, 'ECX':true, 'S0': true, 'S1': true};
+    let callCloberredRegisters = {
+        ecx: {
+            t: 'REG',
+            v: 'ecx',
+        },
+        edx: {
+            t: 'REG',
+            v: 'edx',
+        },
+    };
+
+    let spillRegisters = {};
+
     for (let i in dropped.connections) {
         const n = dropped.connections[i];
-        delete availableRegisters[vertices[n].reg.k];
+        delete callPreservedRegisters[vertices[n].reg.v];
+        delete callCloberredRegisters[vertices[n].reg.v];
+        delete spillRegisters[vertices[n].reg.v];
         addEdge(dropped.id, n);
     }
 
     // assign register if one left, or spill variable
-    vertices[dropped.id].reg = availableRegisters[Object.keys(availableRegisters)[0]];
+    if( callClobbered[dropped.id] )
+        vertices[dropped.id].reg = getRegister(callPreservedRegisters, spillRegisters);
+    else
+        vertices[dropped.id].reg = getRegister(callCloberredRegisters, spillRegisters);
 
     const registers = {};
     for (let i in vertices) {
@@ -135,8 +143,9 @@ function addFullyLinkedVertices(keys) {
 }
 
 function isRegister(v) {
-    return v && (/*v.t == 'VAR' ||*/ v.t == 'VREG');
+    return v && v.t == 'VREG';
 }
+
 // Build a graph representing variable used at the same time
 // 
 // Parse the code backward, add vertex for each variable when the variable is read,
@@ -170,6 +179,13 @@ function buildLiveRegisterGraph(nodes) {
                 liveRegisters[ins.w.ssa] = true;
             }
 
+            // can't assign call-cloberred register to some variables
+            if(ins.op == 'call') {
+                for(let ir in liveRegisters) {
+                    callClobbered[ir] = true;
+                }
+            }
+
             addFullyLinkedVertices(Object.keys(liveRegisters));
 
             //
@@ -188,15 +204,18 @@ function buildLiveRegisterGraph(nodes) {
                 liveRegisters[ins.r2.ssa] = true;
             }
 
+            // can't assign call-cloberred register to some variables
+            if(ins.op == 'call') {
+                for(let ir in liveRegisters) {
+                    callClobbered[ir] = true;
+                }
+            }
+
             addFullyLinkedVertices(Object.keys(liveRegisters));
         }
 
         n.liveRegisters = liveRegisters;
     }
-}
-
-function max(a, b) {
-    return a > b ? a : b;
 }
 
 function replaceRegisters(nodes, registers) {
@@ -207,13 +226,8 @@ function replaceRegisters(nodes, registers) {
         if (n.func) {
             for (var i in registers) {
                 // always reserve some space for variable in case we need to have a pointer
-                n.func.varCount = max(n.func.varCount, registers[i].index + 1);
                 if (registers[i].t == 'REG')
                     n.func.usedRegisters[registers[i].v] = true;
-                else {
-                    registers[i].spill = true;
-                    registers[i].t = 'VAR';
-                }
             }
         }
 
@@ -224,19 +238,16 @@ function replaceRegisters(nodes, registers) {
             if (isRegister(ins.r1)) {
                 ins.r1.t = registers[ins.r1.ssa].t;
                 ins.r1.reg = registers[ins.r1.ssa].v;
-                ins.r1.address = registers[ins.r1.ssa].address;
             }
 
             if (isRegister(ins.r2)) {
                 ins.r2.t = registers[ins.r2.ssa].t;
                 ins.r2.reg = registers[ins.r2.ssa].v;
-                ins.r2.address = registers[ins.r2.ssa].address;
             }
 
             if (isRegister(ins.w)) {
                 ins.w.t = registers[ins.w.ssa].t;
                 ins.w.reg = registers[ins.w.ssa].v;
-                ins.w.address = registers[ins.w.ssa].address;
             }
 
             // drop instructions that move register to iself
@@ -246,12 +257,11 @@ function replaceRegisters(nodes, registers) {
             ilcode.push(ins);
         }
         n.ilcode = ilcode;
-
     }
 }
 
 module.exports = function (nodes) {
     buildLiveRegisterGraph([...nodes].reverse());
-    const mapping = findVariableMapping();
+    const mapping = findRegisterMapping();
     replaceRegisters(nodes, mapping);
 };

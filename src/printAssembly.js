@@ -165,8 +165,8 @@ strlen:
     push ebp
     mov ebp, esp
     push ebx
-    push ecx
-    push edx
+    push esi
+    push edi
     
     mov edi, [ebp+8]
     sub ecx, ecx
@@ -178,8 +178,8 @@ strlen:
     dec ecx
     mov eax, ecx
     
-    pop edx
-    pop ecx
+    pop edi
+    pop esi
     pop ebx
     pop ebp
     ret
@@ -188,8 +188,8 @@ print:
     push ebp
     mov ebp, esp
     push ebx
-    push ecx
-    push edx
+    push esi
+    push edi
     
     push dword [ebp+8]
     call strlen
@@ -201,8 +201,8 @@ print:
     mov eax, 4
     int 0x80
     
-    pop edx
-    pop ecx
+    pop edi
+    pop esi
     pop ebx
     pop ebp
     ret 8
