@@ -369,8 +369,8 @@ function parseFunction(b) {
         }
     }
     //f.args = b.variables;
-    f.args['_retptr'] = {t: 'VAR', v: '_retptr'};
-    i++;
+    //f.args['_retptr'] = {t: 'VAR', v: '_retptr'};
+    //i++;
     functionDeclarations[name.v] = b.func;
     eatToken(')');
     eatToken('{');
@@ -393,12 +393,13 @@ function parseReturn(b) {
     eatToken('RETURN');
     b = parseSum(b);
     const r1 = popRHS(b);
-    const w = getTempVar();
-    b.emit({op: '=', w: w, r1: b.func.args['_retptr']});
-    b.emit({op: 'store', r1: w, r2: r1});
+    //const w = getTempVar();
+    // b.emit({op: '=', w: w, r1: b.func.args['_retptr']});
+    // b.emit({op: 'store', r1: w, r2: r1});
     eatToken(';');
     b.emit({
-        op: 'return'
+        op: 'return',
+        r1: r1
     });
     b.hasReturn = true;
     return b;
@@ -426,17 +427,17 @@ function parseFunctionCall(name, b) {
     eatToken(')');
 
     const ret = declareLocalVariable(b, {t:'VAR', v: '_ret'+retIndex++});
-    const tmp = getTempVar();
-    b.emit({op: 'ptrOf', w: tmp, r1: ret});
-    
-    args.push(tmp);
+    //const tmp = getTempVar();
+    //b.emit({op: 'ptrOf', w: tmp, r1: ret});
+    //args.push(tmp);
 
     if (Object.keys(functionDeclarations[name.v].args).length !== args.length) {
         throw `Function call "${name.v}" doesnt match declared arguments`;
     }
 
     args.reverse().forEach((v)=>b.emit({op: 'push', r1:v}));
-    b.emit({op: 'call', name: name.v, ret: ret});
+    b.emit({op: 'call', name: name.v, w: ret, func: functionDeclarations[name.v]});
+    //b.emit({op: 'call', name: name.v, ret: ret});
 
     vstack.push(ret);
 
@@ -463,7 +464,8 @@ function parseProgram() {
 }
 
 const functionDeclarations = {
-    print: {args: ['str', 'retptr']},
+    print: {args: ['str']},
+    printf: {args: ['str']},
 };
 
 let blockId = 0;

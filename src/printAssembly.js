@@ -113,6 +113,8 @@ function printAssembly(nodes) {
                 printIns(`jmp ${ins.label}`);
             } else if (ins.op == 'call') {
                 printIns(`call ${ins.name}`);
+                printIns(`add esp, ${Object.keys(ins.func.args).length * 4}`);
+                printIns(`mov ${v(ins.w)}, eax`);
             } else if (ins.op == 'functionStart') {
                 console.log(`${ins.name}:`);
                 printIns('push ebp');
@@ -132,15 +134,15 @@ function printAssembly(nodes) {
                     printIns('pop', registers[r]);
                 }
                 printIns('leave');
-                printIns('ret', Object.keys(b.func.args).length * 4);
+                printIns('ret'); //, Object.keys(b.func.args).length * 4);
             } else if (ins.op == 'return') {
-                // printIns(`mov eax, ${ins.r1.v}`);
+                printIns(`mov eax, ${v(ins.r1)}`);
                 let registers = Object.keys(b.func.usedRegisters).reverse();
                 for (let r in registers) {
                     printIns('pop', registers[r]);
                 }
                 printIns('leave');
-                printIns('ret', Object.keys(b.func.args).length * 4);
+                printIns('ret'); //, Object.keys(b.func.args).length * 4);
             } else {
                 printIns(JSON.stringify(ins));
             }
@@ -149,64 +151,15 @@ function printAssembly(nodes) {
 }
 
 module.exports = function (nodes, strings) {
+    console.log(`
+    extern exit, printf, malloc, free
+`)
     console.log('section .text');
-    console.log('    global _start');
+    console.log('    global main');
 
     printAssembly(nodes);
 
     console.log(`
-_start:
-    call main
-    mov eax, 1
-    mov ebx, 0
-    int 0x80
-
-strlen:
-    push ebp
-    mov ebp, esp
-    push ebx
-    push esi
-    push edi
-    
-    mov edi, [ebp+8]
-    sub ecx, ecx
-    sub al, al
-    not ecx
-    cld
-    repne scasb
-    not ecx
-    dec ecx
-    mov eax, ecx
-    
-    pop edi
-    pop esi
-    pop ebx
-    pop ebp
-    ret
-
-print:
-    push ebp
-    mov ebp, esp
-    push ebx
-    push esi
-    push edi
-    
-    push dword [ebp+8]
-    call strlen
-    add esp, 4
-    
-    mov edx, eax
-    mov ecx, dword [ebp+8]
-    mov ebx, 1
-    mov eax, 4
-    int 0x80
-    
-    pop edi
-    pop esi
-    pop ebx
-    pop ebp
-    ret 8
-
 section .data`);
 
     for (let s in strings) {

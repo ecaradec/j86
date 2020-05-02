@@ -13,16 +13,16 @@ FUNCTION main() {
     a = 1;
 
     IF( a == 1 ) {
-        print("IF OK");
+        printf("IF OK");
     } ELSE {
-        print("IF NOK");
+        printf("IF NOK");
     }
 
     a = sum(1,1);
     IF( a == 2) {
-        print("CALL OK");
+        printf("CALL OK");
     } ELSE {
-        print("CALL NOK");
+        printf("CALL NOK");
     }
 
     a = 5;
@@ -30,16 +30,16 @@ FUNCTION main() {
         a = a - 1;
     }
     IF( a == 0 ) {
-        print("WHILE OK");
+        printf("WHILE OK");
     } ELSE {
-        print("WHILE NOK");
+        printf("WHILE NOK");
     }
 
     a = fact(5);
     IF( a == 120 ) {
-        print("RECURSION OK");
+        printf("RECURSION OK");
     } ELSE {
-        print("RECURSION NOK");
+        printf("RECURSION NOK");
     }
 
     a = 1 + 1;
@@ -49,8 +49,8 @@ FUNCTION main() {
     g = a+b+c+d;
     z = d+d;
     IF(g == 8) {
-        print("SPILL OK");
+        printf("SPILL OK");
     } ELSE {
-        print("SPILL NOK");
+        printf("SPILL NOK");
     }
 }
