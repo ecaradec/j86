@@ -1,8 +1,8 @@
-FUNCTION sum(a, b) {
+FUNCTION sum(a : INT32, b : INT32) {
     RETURN a + b;
 }
 
-FUNCTION fact(i) {
+FUNCTION fact(i : INT32) {
     IF( i == 1 ) { 
         RETURN 1;
     }
@@ -10,7 +10,8 @@ FUNCTION fact(i) {
 }
 
 FUNCTION main() {
-    a = 1;
+    LET a:INT32 = 1;
+    LET x:INT64 = 1L;
 
     IF( a == 1 ) {
         printf("IF OK");
@@ -43,11 +44,12 @@ FUNCTION main() {
     }
 
     a = 1 + 1;
-    b = 1 + 1;
-    c = 1 + 1;
-    d = 1 + 1;
-    g = a+b+c+d;
-    z = d+d;
+    LET b:INT32 = 1 + 1;
+    LET c:INT32 = 1 + 1;
+    LET d:INT32 = 1 + 1;
+    LET g:INT32 = a+b+c+d;
+    LET z:INT32 = d + d;
+
     IF(g == 8) {
         printf("SPILL OK");
     } ELSE {

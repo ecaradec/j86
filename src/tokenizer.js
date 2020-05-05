@@ -15,7 +15,6 @@ function eatToken(t) {
 
 
     let re = [
-        {rx: /^([0-9]+)/, tk: 'DIGIT'},
         {rx: /^([+-])/, tk: 'SUM'},
         {rx: /^\*/, tk: 'PRODUCT'},
         {rx: /^&/, tk: '&'},
@@ -27,13 +26,18 @@ function eatToken(t) {
         {rx: /^RETURN/, tk: 'RETURN'},
         {rx: /^IF/, tk: 'IF'},
         {rx: /^ELSE/, tk: 'ELSE'},
+        {rx: /^LET/, tk: 'LET'},
+        {rx: /^(INT64|INT32)/, tk: 'TYPE'},
         {rx: /^\{/, tk: '{'},
         {rx: /^\}/, tk: '}'},
         {rx: /^\(/, tk: '('},
         {rx: /^\)/, tk: ')'},
         {rx: /^;/, tk: ';'},
         {rx: /^,/, tk: ','},
+        {rx: /^:/, tk: ':'},
         {rx: /^([a-z]+)/, tk: 'IDENTIFIER'},
+        {rx: /^([0-9]+L)/, tk: 'DIGIT64'},
+        {rx: /^([0-9]+)/, tk: 'DIGIT'},
         {rx: /^(".*")/, tk: 'STRING'},
         {rx: /^$/, tk: 'END'}
     ];

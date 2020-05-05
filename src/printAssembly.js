@@ -71,7 +71,7 @@ function printAssembly(nodes) {
             } else if (ins.op == '=') {
                 if (ins.w.v != ins.r1.v) {
                     // if both variable are in memory, use eax to transfer
-                    if (ins.w.spill && ins.r1.spill) {
+                    if (ins.w.t == 'VAR' && ins.r1.t == 'VAR') {
                         printIns(`mov eax, ${v(ins.r1)}`);
                         printIns(`mov ${v(ins.w)}, eax`);
                     } else {
@@ -119,7 +119,7 @@ function printAssembly(nodes) {
                 console.log(`${ins.name}:`);
                 printIns('push ebp');
                 printIns('mov ebp, esp');
-                printIns(`sub esp, ${4 * b.func.varCount}`);
+                printIns(`sub esp, ${4 * Object.keys(b.func.variables).length}`);
                 var registers = Object.keys(ins.usedRegisters);
                 for (const j in registers) {
                     printIns('push', registers[j]);

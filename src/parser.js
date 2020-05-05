@@ -77,7 +77,10 @@ function pushVStack(v) {
 function parseTerm(b) {
     if (getToken().t == 'DIGIT') {
         const v = eatToken('DIGIT');
-        vstack.push(v);
+        vstack.push({...v, type: 'INT32'});
+    } else if (getToken().t == 'DIGIT64') {
+        const v = eatToken('DIGIT64');
+        vstack.push({...v, type: 'INT64'});
     } else if (getToken().t == '&') {
         eatToken('&');
         b = parseTerm(b);
@@ -86,7 +89,7 @@ function parseTerm(b) {
             throw 'Cant take a reference of '+v.t;
         }
         // indicate that we want the address of the variable
-        const w = getTempVar();
+        const w = getTempVar(v.type);
         b.emit({op: 'ptrOf', w: w, r1: v });
         vstack.push(w);
     } else if (getToken().t == 'IDENTIFIER') {
@@ -94,11 +97,12 @@ function parseTerm(b) {
         if(getToken().t == '(') {
             b = parseFunctionCall(name, b);
         } else {
-            let v = {t: 'VAR', v: name.v};
-            if(!b.func.args[name.v] && !b.func.variables[name.v])
-                declareLocalVariable(b, {t: 'VAR', v: name.v});
-
-            vstack.push(v);
+            if(b.func.variables[name.v])
+                vstack.push(b.func.variables[name.v]);
+            else if(b.func.args[name.v])
+                vstack.push(b.func.args[name.v]);
+            else
+                throw `Variable ${name.v} is not declared`;
         }
     }
 
@@ -113,7 +117,7 @@ function parseSum(b) {
 
         const op2 = popRHS(b);
         const op1 = popRHS(b);
-        const dst = getTempVar();
+        const dst = getTempVar(op1.type);
 
         if (s.v == '+') {
             b.emit({
@@ -155,8 +159,8 @@ function parseValue(b) {
 }
 
 let tmpIndex = 0;
-function getTempVar() {
-    return {t: 'VAR', v: 'tmp'+tmpIndex++};
+function getTempVar(type) {
+    return {t: 'VAR', v: 'tmp'+tmpIndex++, type: type};
 }
 
 function parseProduct(b) {
@@ -166,7 +170,7 @@ function parseProduct(b) {
         b = parseProduct(b);
         const op2 = popRHS(b);
         const op1 = popRHS(b);
-        const dst = getTempVar();
+        const dst = getTempVar(op1.type);
 
         b.emit({
             op: '*',
@@ -186,12 +190,23 @@ function declareLocalVariable(b, v) {
     return b.func.variables[v.v];
 }
 
+function checkAssignTypes(dst, src) {
+    if(dst.type == src.type) {
+        return;
+    }
+    if(dst.type == 'INT32' && src.type == 'INT32') {
+        return;
+    }
+    throw `Incompatible type assignment ${dst.v}:${dst.type} = ${src.v}:${src.type}`;
+}
+
 function parseAssignment(dst, b) {
     eatToken('EQUAL');
     b = parseValue(b);       // should be a rvalue
     const src = popLHS();
 
-    dst = declareLocalVariable(b, dst);
+    checkAssignTypes(dst, src);
+
     b.emit({
         op: '=',
         w: dst,
@@ -316,6 +331,25 @@ function parseStatement(b) {
         return parseIfStatement(b);
     } else if (getToken().t == 'WHILE') {
         return parseWhileStatement(b);
+    } else if (getToken().t == 'LET') {
+        eatToken('LET');
+        let name = eatToken('IDENTIFIER');
+        eatToken(':');
+        let type = eatToken('TYPE');
+
+        let v = {t: 'VAR', v: name.v, type: type.v};
+        if (getToken().t == 'EQUAL') {
+            b = parseAssignment(v, b);
+        }
+        eatToken(';');
+
+        if(b.func.variables[name.v])
+            throw `Variable ${name.v} already defined`;
+        if(b.func.args[name.v])
+            throw `Variable ${name.v} cant mask argument`;
+
+        declareLocalVariable(b, v);
+        return b;
     } else if (getToken().t == 'IDENTIFIER' || getToken().t == 'PRODUCT') {
         // name or pointer
         b = parseValue(b);
@@ -328,9 +362,15 @@ function parseStatement(b) {
     } else if (getToken().t == 'RETURN') {
         return parseReturn(b);
     } else {
-        throw `Expected IF/WHILE/NAME/FUNCTION or CALL but got ${getToken().t}`;
+        throw `Expected IF/WHILE/NAME/PRODUCT/RETURN or CALL but got ${getToken().t}`;
     }
 }
+
+let types = {
+    VOID: { id: 'VOID', s: 0 },
+    INT32: { id: 'INT32', s: 4 },
+    INT64: { id: 'INT64', s: 8 },
+};
 
 function parseFunction(b) {
     eatToken('FUNCTION');
@@ -340,7 +380,6 @@ function parseFunction(b) {
     const f = {
         op: 'functionStart',
         name: functionStartLabel,
-        varCount: 0,
         usedRegisters: {},
         args: {},
         variables: {}
@@ -349,30 +388,44 @@ function parseFunction(b) {
     b.emit(f);
 
     eatToken('(');
-    //b.args = {};
-    let i = 0;
     if (getToken().t == 'IDENTIFIER') {
-        var n = eatToken('IDENTIFIER');
+        const n = eatToken('IDENTIFIER');
+        eatToken(':');
+        const type = eatToken('TYPE');
         f.args[n.v] = {
             t: 'VAR',
             v: n.v,
+            type: type.v
         };
-        i++;
+
         while (getToken().t == ',') {
             eatToken(',');
             const n = eatToken('IDENTIFIER');
+            eatToken(':');
+            const type = eatToken('TYPE');
             f.args[n.v] = {
                 t: 'VAR',
                 v: n.v,
+                type: type.v
             };
-            i++;
         }
     }
-    //f.args = b.variables;
-    //f.args['_retptr'] = {t: 'VAR', v: '_retptr'};
-    //i++;
-    functionDeclarations[name.v] = b.func;
+
     eatToken(')');
+
+    let returnType = 'VOID';
+    if(getToken().t == ':') {
+        eatToken(':');
+        returnType = eatToken('TYPE').v;
+    } 
+    f.returnType = returnType;
+    
+    if(types[f.returnType].size > 4) {
+        f.args['_retptr'] = {t: 'VAR', v: '_retptr'};
+    }
+
+    functionDeclarations[name.v] = f;
+
     eatToken('{');
     b = parseStatementList(b);
     eatToken('}');
@@ -411,6 +464,7 @@ function parseFunctionCall(name, b) {
     if (functionDeclarations[name.v] === undefined) {
         throw `Function ${name.v} doesnt exists`;
     }
+    let func = functionDeclarations[name.v];
 
     let args = [];
     if (getToken().t != ')') {
@@ -426,7 +480,7 @@ function parseFunctionCall(name, b) {
     }
     eatToken(')');
 
-    const ret = declareLocalVariable(b, {t:'VAR', v: '_ret'+retIndex++});
+    let ret = declareLocalVariable(b, {t:'VAR', v: '_ret'+retIndex++, type: func.returnType});
     //const tmp = getTempVar();
     //b.emit({op: 'ptrOf', w: tmp, r1: ret});
     //args.push(tmp);
@@ -437,9 +491,9 @@ function parseFunctionCall(name, b) {
 
     args.reverse().forEach((v)=>b.emit({op: 'push', r1:v}));
     b.emit({op: 'call', name: name.v, w: ret, func: functionDeclarations[name.v]});
-    //b.emit({op: 'call', name: name.v, ret: ret});
 
-    vstack.push(ret);
+    if(ret)
+        vstack.push(ret);
 
     return b;
 }

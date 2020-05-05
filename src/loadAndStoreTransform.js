@@ -35,7 +35,7 @@ function loadAndStoreTransform(nodes) {
             let ins = b.ilcode[i];
 
             let load1, load2;
-            if(isVar(ins.r1) && ins.op != 'ptrOf') {
+            if(isRegistrable(ins.r1) && ins.op != 'ptrOf') {
                 let r1;
                 if(registerMapping[ins.r1.ssa]) {
                     r1 = registerMapping[ins.r1.ssa];
@@ -46,7 +46,7 @@ function loadAndStoreTransform(nodes) {
                 }
                 ins.r1 = r1;
             }
-            if(isVar(ins.r2) && ins.op != 'ptrOf') {
+            if(isRegistrable(ins.r2) && ins.op != 'ptrOf') {
                 let r2;
                 if(registerMapping[ins.r2.ssa]) {
                     r2 = registerMapping[ins.r2.ssa];
@@ -57,7 +57,7 @@ function loadAndStoreTransform(nodes) {
                 }
                 ins.r2 = r2;
             }
-            if(isVar(ins.w)) {
+            if(isRegistrable(ins.w)) {
                 let w;
                 if(registerMapping[ins.w.ssa]) {
                     w = registerMapping[ins.w.ssa];
@@ -80,8 +80,13 @@ function loadAndStoreTransform(nodes) {
     }
 }
 
-function isVar(v) {
-    return v !== undefined && (v.t == 'VAR'/*||v.t=='VREG'*/);
+let types = {
+    INT32: {size: 4},
+    INT64: {size: 8},
+};
+
+function isRegistrable(v) {
+    return v !== undefined && v.t == 'VAR' && types[v.type].size == 4;
 }
 
 module.exports = loadAndStoreTransform;

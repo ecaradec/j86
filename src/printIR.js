@@ -36,7 +36,7 @@ function toStringIR(b) {
         } else if (ins.op == 'ifFalse') {
             text.push(`ifFalse ${v(ins.r1)}, ${ins.label}`);
         } else if (ins.op == 'return') {
-            text.push('return');
+            text.push(`return ${v(ins.r1)}`);
         } else if (ins.op == 'call') {
             text.push(`call ${ins.name}`);
         } else if (ins.op == 'functionStart') {
