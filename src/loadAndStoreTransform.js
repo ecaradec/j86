@@ -1,6 +1,7 @@
 'use strict';
 
 const getRegister = require('./register.js');
+const types = require('./types.js');
 
 // This transform code using variable (stored in memory) 
 // into separate load, store and operations using registers.
@@ -34,29 +35,21 @@ function loadAndStoreTransform(nodes) {
         for(let i in b.ilcode) {
             let ins = b.ilcode[i];
 
-            let load1, load2;
-            if(isRegistrable(ins.r1) && ins.op != 'ptrOf') {
-                let r1;
-                if(registerMapping[ins.r1.ssa]) {
-                    r1 = registerMapping[ins.r1.ssa];
-                } else {
-                    r1 = getRegister();
-                    load1 = {op: 'load', w: r1, r1: ins.r1 };
-                    registerMapping[ins.r1.ssa] = r1;
+            let load = [];
+            for(let ir in ins.r) {
+                if(isRegistrable(ins.r[ir]) && ins.op != 'ptrOf') {
+                    let r;
+                    if(registerMapping[ins.r[ir].ssa]) {
+                        r = registerMapping[ins.r[ir].ssa];
+                    } else {
+                        r = getRegister();
+                        load.push({op: 'load', w: r, r: [ins.r[ir]] });
+                        registerMapping[ins.r[ir].ssa] = r;
+                    }
+                    ins.r[ir] = r;
                 }
-                ins.r1 = r1;
             }
-            if(isRegistrable(ins.r2) && ins.op != 'ptrOf') {
-                let r2;
-                if(registerMapping[ins.r2.ssa]) {
-                    r2 = registerMapping[ins.r2.ssa];
-                } else {
-                    r2 = getRegister();
-                    load2 = {op: 'load', w: r2, r1: ins.r2 };
-                    registerMapping[ins.r2.ssa] = r2;
-                }
-                ins.r2 = r2;
-            }
+            
             if(isRegistrable(ins.w)) {
                 let w;
                 if(registerMapping[ins.w.ssa]) {
@@ -68,10 +61,9 @@ function loadAndStoreTransform(nodes) {
                 ins.w = w;
             }
 
-            if(load1)
-                ilcode.push(load1);
-            if(load2)
-                ilcode.push(load2);
+            for(let i in load) {
+                ilcode.push(load[i]);
+            }
             ilcode.push(ins);
         }
         b.ilcode = ilcode;
@@ -80,13 +72,8 @@ function loadAndStoreTransform(nodes) {
     }
 }
 
-let types = {
-    INT32: {size: 4},
-    INT64: {size: 8},
-};
-
 function isRegistrable(v) {
-    return v !== undefined && v.t == 'VAR' && types[v.type].size == 4;
+    return v !== undefined && v.t == 'VAR' && types[v.type].s == 4;
 }
 
-module.exports = loadAndStoreTransform;
+module.exports = (f)=> loadAndStoreTransform(f.dominanceOrderList);

@@ -196,12 +196,11 @@ function buildLiveRegisterGraph(nodes) {
                 delete liveRegisters[ins.w.ssa];
             }
 
-            if (isRegister(ins.r1)) {
-                liveRegisters[ins.r1.ssa] = true;
-            }
-
-            if (isRegister(ins.r2)) {
-                liveRegisters[ins.r2.ssa] = true;
+            for(let ir in ins.r) {
+                let r = ins.r[ir];
+                if (isRegister(r)) {
+                    liveRegisters[r.ssa] = true;
+                }
             }
 
             // can't assign call-cloberred register to some variables
@@ -223,31 +222,24 @@ function replaceRegisters(nodes, registers) {
     for(let ib in nodes) {
         let n = nodes[ib];
 
-        if (n.func) {
-            for (var i in registers) {
-                // always reserve some space for variable in case we need to have a pointer
-                if (registers[i].t == 'REG')
-                    n.func.usedRegisters[registers[i].v] = true;
-            }
-        }
-
         let ilcode = [];
         for (let ii = 0; ii < n.ilcode.length; ii++) {
             const ins = n.ilcode[ii];
 
-            if (isRegister(ins.r1)) {
-                ins.r1.t = registers[ins.r1.ssa].t;
-                ins.r1.reg = registers[ins.r1.ssa].v;
-            }
-
-            if (isRegister(ins.r2)) {
-                ins.r2.t = registers[ins.r2.ssa].t;
-                ins.r2.reg = registers[ins.r2.ssa].v;
+            for(let ir in ins.r) {
+                if (isRegister(ins.r[ir])) {
+                    ins.r[ir].t = registers[ins.r[ir].ssa].t;
+                    ins.r[ir].reg = registers[ins.r[ir].ssa].v;
+                }    
+                if(n.func && ins.r[ir].t == 'REG')
+                    n.func.usedRegisters[ins.r[ir].reg] = true;
             }
 
             if (isRegister(ins.w)) {
                 ins.w.t = registers[ins.w.ssa].t;
                 ins.w.reg = registers[ins.w.ssa].v;
+                if(n.func && ins.w.t == 'REG')
+                    n.func.usedRegisters[ins.w.reg] = true;
             }
 
             // drop instructions that move register to iself
@@ -260,8 +252,8 @@ function replaceRegisters(nodes, registers) {
     }
 }
 
-module.exports = function (nodes) {
-    buildLiveRegisterGraph([...nodes].reverse());
+module.exports = function (f) {
+    buildLiveRegisterGraph([...f.dominanceOrderList].reverse());
     const mapping = findRegisterMapping();
-    replaceRegisters(nodes, mapping);
+    replaceRegisters(f.dominanceOrderList, mapping);
 };

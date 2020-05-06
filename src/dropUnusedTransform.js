@@ -36,10 +36,10 @@ function dropUnusedTransform(nodes) {
                 continue;
             }
 
-            if(ins.r1)
-                usedVariables[ins.r1.ssa] = true;
-            if(ins.r2)
-                usedVariables[ins.r2.ssa] = true;
+            for(let ir in ins.r) {
+                let r = ins.r[ir];
+                usedVariables[r.ssa] = true;
+            }
             
             ilcode.unshift(ins);
         }
@@ -49,4 +49,4 @@ function dropUnusedTransform(nodes) {
     }
 }
 
-module.exports = dropUnusedTransform;
+module.exports = (f) => dropUnusedTransform(f.dominanceOrderList);

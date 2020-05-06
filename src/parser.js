@@ -6,6 +6,8 @@ let {
     eatToken
 } = require('./tokenizer');
 
+const types = require('./types.js');
+
 function Block(predecessors) {
     blockList.push(this);
 
@@ -46,9 +48,9 @@ function Block(predecessors) {
 
     this.addPHI = (v) => {
         let phiList = this.getPHIs();
-        if(phiList[v])
+        if(phiList[v.v])
             return;
-        this.ilcode.unshift({op: 'phi', id: v, w: {t:'VAR', v:v}, r:[] });
+        this.ilcode.unshift({op: 'phi', id: v.v, w: v, r:[] });
     };
 
     this.getPHIs = function() {
@@ -90,7 +92,7 @@ function parseTerm(b) {
         }
         // indicate that we want the address of the variable
         const w = getTempVar(v.type);
-        b.emit({op: 'ptrOf', w: w, r1: v });
+        b.emit({op: 'ptrOf', w: w, r: [v] });
         vstack.push(w);
     } else if (getToken().t == 'IDENTIFIER') {
         const name = eatToken('IDENTIFIER');
@@ -123,15 +125,13 @@ function parseSum(b) {
             b.emit({
                 op: '+',
                 w: dst,
-                r1: op1,
-                r2: op2,
+                r: [op1, op2]
             });
         } else {
             b.emit({
                 op: '-',
                 w: dst,
-                r1: op1,
-                r2: op2,
+                r: [op1, op2]
             });
         }
 
@@ -175,8 +175,7 @@ function parseProduct(b) {
         b.emit({
             op: '*',
             w: dst,
-            r1: op1,
-            r2: op2,
+            r: [op1, op2]
         });
         pushVStack(dst);
     }
@@ -210,7 +209,7 @@ function parseAssignment(dst, b) {
     b.emit({
         op: '=',
         w: dst,
-        r1: src
+        r: [src]
     });
     
     return b;
@@ -238,8 +237,7 @@ function parseCondStatement(b) {
     b.emit({
         op,
         w: tmp,
-        r1: v1,
-        r2: v2,
+        r: [v1, v2]
     });
     return b;
 }
@@ -259,7 +257,7 @@ function parseIfStatement(b) {
     };
     prev.emit({
         op: 'ifFalse',
-        r1: tmp,
+        r: [tmp],
         label: falseBlock.name
     });
 
@@ -311,7 +309,7 @@ function parseWhileStatement(b) {
     };
     whileBlock.emit({
         op: 'ifFalse',
-        r1: tmp,
+        r: [tmp],
         label: endBlock.name
     }); // exit if condition is false
     eatToken(')');
@@ -366,12 +364,7 @@ function parseStatement(b) {
     }
 }
 
-let types = {
-    VOID: { id: 'VOID', s: 0 },
-    INT32: { id: 'INT32', s: 4 },
-    INT64: { id: 'INT64', s: 8 },
-};
-
+let functionsList = [];
 function parseFunction(b) {
     eatToken('FUNCTION');
     const name = eatToken('IDENTIFIER');
@@ -382,9 +375,14 @@ function parseFunction(b) {
         name: functionStartLabel,
         usedRegisters: {},
         args: {},
-        variables: {}
+        variables: {},
+        blocks: []
     };
     b.func = f;
+    let startBlock = blockList.length-1;
+
+    functionsList.push(f);
+
     b.emit(f);
 
     eatToken('(');
@@ -439,6 +437,8 @@ function parseFunction(b) {
         name: functionStartLabel
     });
 
+    f.blocks = blockList.slice(startBlock, blockList.length);
+
     return b;
 }
 
@@ -452,7 +452,7 @@ function parseReturn(b) {
     eatToken(';');
     b.emit({
         op: 'return',
-        r1: r1
+        r: [r1]
     });
     b.hasReturn = true;
     return b;
@@ -489,7 +489,7 @@ function parseFunctionCall(name, b) {
         throw `Function call "${name.v}" doesnt match declared arguments`;
     }
 
-    args.reverse().forEach((v)=>b.emit({op: 'push', r1:v}));
+    args.reverse().forEach((v)=>b.emit({op: 'push', r:[v]}));
     b.emit({op: 'call', name: name.v, w: ret, func: functionDeclarations[name.v]});
 
     if(ret)
@@ -518,8 +518,7 @@ function parseProgram() {
 }
 
 const functionDeclarations = {
-    print: {args: ['str']},
-    printf: {args: ['str']},
+    printf: {args: ['str'], returnType: 'INT32'},
 };
 
 let blockId = 0;
@@ -543,5 +542,6 @@ module.exports = {
     },
     getStrings: () => strings,
     getStartBlock: () => ast,
-    getBlockList: () => blockList
+    getBlockList: () => blockList,
+    getFunctions: () => functionsList,
 };

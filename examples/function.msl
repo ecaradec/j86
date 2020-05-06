@@ -1,15 +1,15 @@
-FUNCTION sum(a : INT32, b : INT32) {
+FUNCTION sum(a : INT32, b : INT32) : INT32 {
     RETURN a + b;
 }
 
-FUNCTION fact(i : INT32) {
+FUNCTION fact(i : INT32) : INT32 {
     IF( i == 1 ) { 
         RETURN 1;
     }
     RETURN i * fact(i-1);
 }
 
-FUNCTION main() {
+FUNCTION main() : INT32 {
     LET a:INT32 = 1;
     LET x:INT64 = 1L;
 

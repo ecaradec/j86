@@ -12,31 +12,31 @@ function toStringIR(b) {
         //console.log(JSON.stringify(ins));
         // text.push(JSON.stringify(ins));
         if (ins.op == '*') {
-            text.push(`${v(ins.w)} := ${v(ins.r1)} * ${v(ins.r2)}`);
+            text.push(`${v(ins.w)} := ${v(ins.r[0])} * ${v(ins.r[1])}`);
         } else if (ins.op == '+') {
-            text.push(`${v(ins.w)} := ${v(ins.r1)} + ${v(ins.r2)}`);
+            text.push(`${v(ins.w)} := ${v(ins.r[0])} + ${v(ins.r[1])}`);
         } else if (ins.op == '-') {
-            text.push(`${v(ins.w)} := ${v(ins.r1)} - ${v(ins.r2)}`);
+            text.push(`${v(ins.w)} := ${v(ins.r[0])} - ${v(ins.r[1])}`);
         } else if (ins.op == '=') {
-            text.push(`${v(ins.w)} := ${v(ins.r1)}`);
+            text.push(`${v(ins.w)} := ${v(ins.r[0])}`);
         } else if (ins.op == 'ptrOf') {
-            text.push(`${v(ins.w)} := ptrOf ${v(ins.r1)}`);
+            text.push(`${v(ins.w)} := ptrOf ${v(ins.r[0])}`);
         } else if (ins.op == '==') {
-            text.push(`${v(ins.w)} := ${v(ins.r1)} == ${v(ins.r2)}`);
+            text.push(`${v(ins.w)} := ${v(ins.r[0])} == ${v(ins.r[1])}`);
         } else if (ins.op == '!=') {
-            text.push(`${v(ins.w)} := ${v(ins.r1)} != ${v(ins.r2)}`);
+            text.push(`${v(ins.w)} := ${v(ins.r[0])} != ${v(ins.r[1])}`);
         } else if (ins.op == 'push') {
-            text.push(`push ${v(ins.r1)}`);
+            text.push(`push ${v(ins.r[0])}`);
         } else if (ins.op == 'pop') {
             text.push(`pop ${v(ins.w)}`);
         } else if (ins.op == 'jmp') {
             text.push(`jmp ${ins.label}`);
         } else if (ins.op == 'ifTrue') {
-            text.push(`ifTrue ${v(ins.r1)}, ${ins.label}`);
+            text.push(`ifTrue ${v(ins.r[0])}, ${ins.label}`);
         } else if (ins.op == 'ifFalse') {
-            text.push(`ifFalse ${v(ins.r1)}, ${ins.label}`);
+            text.push(`ifFalse ${v(ins.r[0])}, ${ins.label}`);
         } else if (ins.op == 'return') {
-            text.push(`return ${v(ins.r1)}`);
+            text.push(`return ${v(ins.r[0])}`);
         } else if (ins.op == 'call') {
             text.push(`call ${ins.name}`);
         } else if (ins.op == 'functionStart') {
@@ -45,9 +45,9 @@ function toStringIR(b) {
         } else if (ins.op == 'functionEnd') {
             text.push('functionEnd');
         } else if (ins.op == 'load') {
-            text.push(`${v(ins.w)} = load ${v(ins.r1)}`);
+            text.push(`${v(ins.w)} = load ${v(ins.r[0])}`);
         } else if (ins.op == 'store') {
-            text.push(`store ${v(ins.r1)}, ${v(ins.r2)}`);
+            text.push(`store ${v(ins.r[0])}, ${v(ins.r[1])}`);
         } else if (ins.op == 'phi') {
             // console.log(JSON.stringify(ins));
             text.push(`${ins.w.ssa?ins.w.ssa:ins.w.v} := phi ${ins.id} [ ${ins.r.map(x=>x.ssa?x.ssa:x.v).join(', ')} ]`);
@@ -62,8 +62,10 @@ function printIR(nodes) {
     for(let i in nodes) {
         let b = nodes[i];
         console.log(`${b.name}:`);
-        if (b.ilcode.length > 0) console.log(toStringIR(b).join('\n'));
+        if (b.ilcode.length > 0)
+            console.log(toStringIR(b).join('\n'));
     }
+    console.log('');
 }
 
 function toArray(b) {

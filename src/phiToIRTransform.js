@@ -37,7 +37,7 @@ function phiToIRTransform(nodes) {
                 n.predecessors[i].emit({
                     op: '=',
                     w: phi.w,
-                    r1: phi.r[i],
+                    r: [phi.r[i]],
                 });
                 if (lastCond) {
                     ass.push(lastCond);
@@ -53,4 +53,4 @@ function phiToIRTransform(nodes) {
     }
 }
 
-module.exports = phiToIRTransform;
+module.exports = (f)=> phiToIRTransform(f.dominanceOrderList);

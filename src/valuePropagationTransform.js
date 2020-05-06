@@ -16,22 +16,19 @@ function valuePropagationTransform(nodes) {
             if(ins.op == 'phi') {
                 b.memoryMapping[ins.id] = ins.w;
             }
-            if(ins.op == '=' && ins.w && !ins.r2) {
+            if(ins.op == '=' && ins.w && ins.r.length == 1) {
                 // as no register is read before been initialize we should always know what it contains
-                if(b.memoryMapping[ins.r1.v]) {
-                    b.memoryMapping[ins.w.v] = b.memoryMapping[ins.r1.v];
+                if(b.memoryMapping[ins.r[0]]) {
+                    b.memoryMapping[ins.w.v] = b.memoryMapping[ins.r[0]];
                 } else {
-                    b.memoryMapping[ins.w.v] = ins.r1;
+                    b.memoryMapping[ins.w.v] = ins.r[0];
                 }
-                ins.r1 = b.memoryMapping[ins.w.v];
             }
-            if(ins.r1 && b.memoryMapping[ins.r1.v]) {
-                // replace a register by its known value if any
-                ins.r1 = b.memoryMapping[ins.r1.v];
-            }
-            if(ins.r2 && b.memoryMapping[ins.r2.v]) {
-                // replace a register by its known value if any
-                ins.r2 = b.memoryMapping[ins.r2.v];
+            for(let ir in ins.r) {
+                if(ins.r[ir] && b.memoryMapping[ins.r[ir].v]) {
+                    // replace a register by its known value if any
+                    ins.r[ir] = b.memoryMapping[ins.r[ir].v];
+                }
             }
             ilcode.push(ins);
         }
@@ -54,4 +51,4 @@ function valuePropagationTransform(nodes) {
     }
 }
 
-module.exports = valuePropagationTransform;
+module.exports = (f)=> valuePropagationTransform(f.dominanceOrderList);

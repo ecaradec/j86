@@ -29,12 +29,10 @@ function addressesTransform(nodes) {
                 ivar=0;
             }
 
-            if(ins.r1 && ins.r1.t == 'VAR') {
-                ins.r1.address = getVarAddress(ins.r1.v);
-            }
-            
-            if(ins.r2 && ins.r2.t == 'VAR') {
-                ins.r2.address = getVarAddress(ins.r2.v);
+            for(let ir in ins.r) {
+                if(ins.r[ir] && ins.r[ir].t == 'VAR') {
+                    ins.r[ir].address = getVarAddress(ins.r[ir].v);
+                }    
             }
 
             if(ins.w && ins.w.t == 'VAR') {
@@ -44,4 +42,4 @@ function addressesTransform(nodes) {
     }
 }
 
-module.exports = addressesTransform;
+module.exports = (f)=> addressesTransform(f.dominanceOrderList);

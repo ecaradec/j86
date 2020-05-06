@@ -1,7 +1,7 @@
 'use strict';
 
 const parser = require('./parser');
-const buildDominance = require('./dominance');
+const dominanceTransform = require('./dominance');
 const frontierSSATransform = require('./frontierSSATransform');
 const phiToIRTransform = require('./phiToIRTransform');
 const registerAllocationTransform = require('./registerAllocationTransform');
@@ -15,69 +15,38 @@ const addressesTransform = require('./addressesTransform');
 var fs = require('fs');
 
 fs.readFile(process.argv[2], 'utf8', function(err, program) {
-    if(process.argv[3] === undefined) {
-        parser.build(program);
-        let dominance = buildDominance(parser.getStartBlock());
-        let dominanceOrderList = dominance.getDominanceOrderNodeList(parser.getStartBlock());
-        frontierSSATransform(dominanceOrderList);
-        valuePropagationTransform(dominanceOrderList);
-        dropUnusedTransform(dominanceOrderList);
-        phiToIRTransform(dominanceOrderList);
-        loadAndStoreTransform(dominanceOrderList);
-        registerAllocationTransform(dominanceOrderList);
-        addressesTransform(dominanceOrderList);
-        printAssembly(parser.getBlockList(), parser.getStrings());
-        return;
-    }
+    parser.build(program);
 
     if(process.argv[3] === '--debug') {
         console.log('* PARSING *');
-        parser.build(program);
         printIR(parser.getBlockList());
-        console.log('');
-
-        console.log('* DOMINANCE & PHI INSERTION *');
-        let dominance = buildDominance(parser.getStartBlock());
-        let dominanceOrderList = dominance.getDominanceOrderNodeList(parser.getStartBlock());
-        printIR(parser.getBlockList());
-        console.log('');
-
-        console.log('* SSA TRANSFORM *');
-        frontierSSATransform(dominanceOrderList);
-        printIR(parser.getBlockList());
-        console.log('');
-        
-        console.log('* VALUE PROPAGATION TRANSFORM *');
-        valuePropagationTransform(dominanceOrderList);
-        printIR(parser.getBlockList());
-        console.log('');
-
-        console.log('* DROP UNUSED TRANSFORM *');
-        dropUnusedTransform(dominanceOrderList);
-        printIR(parser.getBlockList());
-        console.log('');
-
-        console.log('* PHI RESOLUTION TRANSFORM *');
-        phiToIRTransform(dominanceOrderList);
-        printIR(parser.getBlockList());
-        console.log('');
-
-        console.log('* LOAD AND STORE TRANSFORM *');
-        loadAndStoreTransform(dominanceOrderList);
-        printIR(parser.getBlockList());
-        console.log('');
-
-        console.log('* x86 REGISTER ALLOCATION TRANSFORM *');
-        registerAllocationTransform(dominanceOrderList);
-        printIR(parser.getBlockList());
-        console.log('');
-
-        console.log('* x86 ADDRESSES TRANSFORM *');
-        addressesTransform(dominanceOrderList);
-        printIR(parser.getBlockList());
-        console.log('');
-
-        console.log('* x86 ASSEMBLY TRANSFORM *');
-        printAssembly(parser.getBlockList(), parser.getStrings());    
     }
+
+    let transforms = [
+        {name: '* DOMINANCE & PHI INSERTION *', f: dominanceTransform},
+        {name: '* SSA TRANSFORM *', f: frontierSSATransform},
+        {name: '* VALUE PROPAGATION TRANSFORM *', f: valuePropagationTransform},
+        {name: '* DROP UNUSED TRANSFORM *', f: dropUnusedTransform},
+        {name: '* PHI RESOLUTION TRANSFORM *', f: phiToIRTransform},
+        {name: '* LOAD AND STORE TRANSFORM *', f: loadAndStoreTransform},
+        {name: '* x86 REGISTER ALLOCATION TRANSFORM *', f: registerAllocationTransform},
+        {name: '* x86 ADDRESSES TRANSFORM *', f: addressesTransform},
+    ];
+    
+    let functions = parser.getFunctions();
+    for(let it in transforms) {
+        for(let f of functions) {
+            transforms[it].f(f);
+        }
+        if(process.argv[3] === '--debug') {
+            console.log(transforms[it].name);
+            printIR(parser.getBlockList());
+        }
+    }
+
+    if(process.argv[3] === '--debug') {
+        console.log('* x86 ASSEMBLY TRANSFORM *');
+    }
+
+    printAssembly(parser.getBlockList(), parser.getStrings());
 });

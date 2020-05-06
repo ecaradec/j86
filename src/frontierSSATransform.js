@@ -46,12 +46,12 @@ function renameBlock(nodes) {
                 b.readIndex[ins.w.v] = writeIndex[ins.w.v] = writeIndex[ins.w.v] + 1;
                 ins.w = getSSAForm(ins.w, b.readIndex);
             }
-            if(isVar(ins.r1)) {
-                ins.r1 = getSSAForm(ins.r1, b.readIndex);
+            for(let ir in ins.r) {
+                if(isVar(ins.r[ir])) {
+                    ins.r[ir] = getSSAForm(ins.r[ir], b.readIndex);
+                }
             }
-            if(isVar(ins.r2)) {
-                ins.r2 = getSSAForm(ins.r2, b.readIndex);
-            }
+            
             ilcode.push(ins);
         }
         b.ilcode = ilcode;
@@ -76,17 +76,12 @@ function renameBlock(nodes) {
                 if(!phi.w.ssa) {
                     b.readIndex[v] = writeIndex[v] = writeIndex[v] + 1;
                     phi.w = getSSAForm(phi.w, b.readIndex);
-
-                    if(b.func.variables[phi.w.v])
-                        phi.w.address = b.func.variables[phi.w.v].address;
-                    if(b.func.args[phi.w.v])
-                        phi.w.address = b.func.args[phi.w.v].address;
                 }
             }
         }
     }
 }
 
-module.exports = function(nodes) {
-    renameBlock(nodes);
+module.exports = function(f) {
+    renameBlock(f.dominanceOrderList);
 };

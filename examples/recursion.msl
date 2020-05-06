@@ -1,16 +1,14 @@
 
-FUNCTION fact(i) {
+FUNCTION fact(i : INT32) : INT32 {
     IF( i == 1 ) { RETURN 1; }
     RETURN i * fact(i-1);
 }
 
-FUNCTION main() {
-    print("TEST");
-
-    a = fact(5);
+FUNCTION main() : INT32 {
+    LET a:INT32 = fact(5);
     IF( a == 120 ) {
-        print("RECURSION OK");
+        printf("RECURSION OK");
     } ELSE {
-        print("RECURSION NOK");
+        printf("RECURSION NOK");
     }
 }

@@ -98,11 +98,11 @@ function getVariables(n) {
     let variables = {};
     for(let ii in n.ilcode) {
         let ins = n.ilcode[ii];
-        if(ins.w && ins.w.t == 'VAR') variables[ins.w.v] = true;
-        if(ins.r1 && ins.r1.t == 'VAR') variables[ins.r1.v] = true;
-        if(ins.r2 && ins.r2.t == 'VAR') variables[ins.r2.v] = true;
+        if(ins.w && ins.w.t == 'VAR') variables[ins.w.v] = ins.w;
+        for(let ir in ins.r) 
+            if(ins.r[ir].t == 'VAR') variables[ins.r[ir].v] = ins.r[ir];
     }
-    return Object.keys(variables);
+    return variables;
 }
 
 // get the list of all variables in all blocks
@@ -111,10 +111,10 @@ function getAllVariables(nodes) {
     for(let i in nodes) {
         let variables = getVariables(nodes[i]);
         for(let v in variables) {
-            allVariables[variables[v]] = true;
+            allVariables[variables[v].v] = variables[v];
         }
     }
-    return Object.keys(allVariables);
+    return allVariables;
 }
 
 // get the list of blocks where a variable is used
@@ -124,8 +124,8 @@ function getDefSites(nodes) {
         let n = nodes[i];
         let variables = getVariables(nodes[i]);
         for(let v in variables) {
-            if(defSites[variables[v]] == undefined) defSites[variables[v]] = [];
-            defSites[variables[v]].push(n);
+            if(defSites[v] == undefined) defSites[v] = [];
+            defSites[v].push(n);
         }
     }
     return defSites;
@@ -136,8 +136,7 @@ function placePhiFunctions(nodes) {
     let defSites = getDefSites(nodes);
     let allVariables = getAllVariables(nodes);
     // process variables one at a time
-    for(let iv in allVariables) {
-        let v = allVariables[iv];
+    for(let v in allVariables) {
         let w = defSites[v];
         // as long as there is block with that variable we didn't process
         // (new block can show up when we add phi functions )
@@ -153,7 +152,7 @@ function placePhiFunctions(nodes) {
                 }
                 // if there is no phi and the variable is live, add it
                 if(isLive)
-                    f.addPHI(v);
+                    f.addPHI(allVariables[v]);
             }
         }
     }
@@ -191,12 +190,10 @@ function buildLiveVariable(n) {
             delete liveVariables[ins.w.v];
         }
 
-        if (ins.r1 && ins.r1.t == 'VAR') {
-            liveVariables[ins.r1.v] = true;
-        }
-
-        if (ins.r2 && ins.r2.t == 'VAR') {
-            liveVariables[ins.r2.v] = true;
+        for(let ir in ins.r) {
+            if (ins.r[ir] && ins.r[ir].t == 'VAR') {
+                liveVariables[ins.r[ir].v] = true;
+            }    
         }
     }
 
@@ -217,9 +214,22 @@ function buildDominanceTree(nodes, doms) {
     }
 }
 
-module.exports = function(ast) {
+function updateDominanceList(f) {
+    let b = f.blocks[0];
+    f.dominanceOrderList = [];
+    let collect = (b) => {
+        f.dominanceOrderList.push(b);
+        for(let ic in b.children) {
+            collect(b.children[ic]);
+        }
+    };
+    collect(b);
+}
+
+module.exports = function(f) {
+
     // Backorder traversal of the node graph.
-    let nodes = backOrderTraverse(ast).reverse();
+    let nodes = backOrderTraverse(f.blocks[0]).reverse();
 
     let doms = dominance(nodes);
     
@@ -231,17 +241,5 @@ module.exports = function(ast) {
 
     placePhiFunctions(nodes);
 
-    return {
-        getDominanceOrderNodeList: (b) => {
-            let results = [];
-            let f = (b) => {
-                results.push(b);
-                for(let ic in b.children) {
-                    f(b.children[ic]);
-                }
-            };
-            f(b);
-            return results;
-        }
-    };
+    updateDominanceList(f);
 };
