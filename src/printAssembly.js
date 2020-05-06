@@ -1,19 +1,6 @@
 'use strict';
 
 function printAssembly(nodes) {
-    function getLastIns(n) {
-        if (n.ilcode.length > 0) return n.ilcode[n.ilcode.length - 1];
-        return getLastIns(n.predecessors[0]);
-    }
-
-    function getPrevIns(n) {
-        if (n.ilcode.length > 1) return n.ilcode[n.ilcode.length - 1];
-        // should really check on all path, but it's enough for now
-        // as the function is only used to prevent double return.
-        // it can still happens if doing return on booth path of an if/else
-        return getLastIns(n.predecessors[0]);
-    }
-
     function printIns() {
         arguments[0] = `    ${arguments[0]}`;
         console.log.apply({}, arguments);
@@ -136,7 +123,8 @@ function printAssembly(nodes) {
                 printIns('leave');
                 printIns('ret'); //, Object.keys(b.func.args).length * 4);
             } else if (ins.op == 'return') {
-                printIns(`mov eax, ${v(ins.r[0])}`);
+                if(ins.r[0])
+                    printIns(`mov eax, ${v(ins.r[0])}`);
                 let registers = Object.keys(b.func.usedRegisters).reverse();
                 for (let r in registers) {
                     printIns('pop', registers[r]);
@@ -152,8 +140,8 @@ function printAssembly(nodes) {
 
 module.exports = function (nodes, strings) {
     console.log(`
-    extern exit, printf, malloc, free
-`)
+extern exit, printf, malloc, free
+`);
     console.log('section .text');
     console.log('    global main');
 

@@ -8,7 +8,7 @@ let {
 
 const types = require('./types.js');
 
-function Block(predecessors) {
+function Block(predecessors = []) {
     blockList.push(this);
 
     this.ilcode = [];
@@ -34,8 +34,8 @@ function Block(predecessors) {
     }
 
     this.addPredecessor = (p) => {
-        this.successors.push(p);
-        p.predecessors.push(this);
+        p.successors.push(this);
+        this.predecessors.push(p);
         this.func = p.func;
     };
 
@@ -68,7 +68,7 @@ function Block(predecessors) {
 function popLHS() {
     return vstack.pop();
 }
-function popRHS(b) {
+function popRHS() {
     return vstack.pop();
 }
 
