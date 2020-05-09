@@ -1,13 +1,14 @@
-FUNCTION main() {
-    a = 1 + 1;
-    b = 1 + 1;
-    c = 1 + 1;
-    d = 1 + 1;
-    g = a+b+c+d;
-    z = d+d;
+FUNCTION main() : INT32 {
+    LET a : INT32 = 1 + 1;
+    LET b : INT32 = 1 + 1;
+    LET c : INT32 = 1 + 1;
+    LET d : INT32 = 1 + 1;
+    LET g : INT32 = a+b+c+d;
+    LET z : INT32 = d+d;
     IF(g == 8) {
-        print("SPILL OK");
+        printf("SPILL OK");
     } ELSE {
-        print("SPILL NOK");
+        printf("SPILL NOK");
     }
+    RETURN 0;
 }

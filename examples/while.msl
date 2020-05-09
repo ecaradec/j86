@@ -1,11 +1,12 @@
-FUNCTION main() {
-    a = 0;
+FUNCTION main() : INT32 {
+    LET a : INT32 = 0;
     WHILE(a != 10) {
         a = a + 1;
     }
     IF(a == 10) {
-        print("WHILE OK");
+        printf("WHILE OK");
     } ELSE {
-        print("WHILE NOK");
+        printf("WHILE NOK");
     }
+    RETURN 0;
 }

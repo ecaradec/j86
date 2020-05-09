@@ -1,12 +1,12 @@
-FUNCTION sum(a, b) {
+FUNCTION sum(a : INT32, b : INT32) : INT32 {
     RETURN a + b;
 }
 
-FUNCTION main() {
-    a = sum(1,1);
-    IF( a == 2) {
-        print("CALL OK");
+FUNCTION main() : INT32 {
+    LET a : INT32 = sum(1,1);
+    IF( a == 2 ) {
+        printf("CALL OK");
     } ELSE {
-        print("CALL NOK");
+        printf("CALL NOK");
     }
 }

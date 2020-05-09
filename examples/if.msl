@@ -1,9 +1,9 @@
-FUNCTION main() {
-    a = 1;
+FUNCTION main() : INT32 {
+    LET a : INT32 = 1;
     IF( a == 1 ) {
-        str = "IF OK";
+        printf("IF OK");
     } ELSE {
-        str = "IF NOK";
+        printf("IF NOK");
     }
-    print(str);
+    RETURN 0;
 }

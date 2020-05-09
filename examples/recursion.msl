@@ -11,4 +11,5 @@ FUNCTION main() : INT32 {
     } ELSE {
         printf("RECURSION NOK");
     }
+    RETURN 0;
 }
