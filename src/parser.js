@@ -431,7 +431,6 @@ function parseFunction(b) {
     // all values should be consumed at this point
     if (vstack.length != 0) throw 'Expected vstack to be empty';
 
-    // emit({op:'RET'});
     b.emit({
         op: 'functionEnd',
         name: functionStartLabel
@@ -489,8 +488,7 @@ function parseFunctionCall(name, b) {
         throw `Function call "${name.v}" doesnt match declared arguments`;
     }
 
-    args.reverse().forEach((v)=>b.emit({op: 'push', r:[v]}));
-    b.emit({op: 'call', name: name.v, w: ret, func: functionDeclarations[name.v]});
+    b.emit({op: 'call', name: name.v, w: ret, r: args, func: functionDeclarations[name.v]});
 
     if(ret)
         vstack.push(ret);

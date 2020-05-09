@@ -14,6 +14,7 @@
 *   [x] output to NASM format ?
 *   [x] replace load and store by marking variables on SSA on first use (and only use store explicitly)
 *   [/] support of types (int and int*)
+*   [ ] list the optimisation done by project
 *   [ ] process dominance by function
 *   [ ] use a keyword for declaring value instead of just initializing it ?
 *   [ ] let functions returns values by pointer or in eax depending of size

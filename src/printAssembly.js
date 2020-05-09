@@ -99,8 +99,9 @@ function printAssembly(nodes) {
             } else if (ins.op == 'jmp') {
                 printIns(`jmp ${ins.label}`);
             } else if (ins.op == 'call') {
+                ins.r.reverse().forEach((r)=>printIns(`push ${v(r)}`));
                 printIns(`call ${ins.name}`);
-                printIns(`add esp, ${Object.keys(ins.func.args).length * 4}`);
+                printIns(`add esp, ${ins.r.length * 4}`);
                 printIns(`mov ${v(ins.w)}, eax`);
             } else if (ins.op == 'functionStart') {
                 console.log(`${ins.name}:`);
