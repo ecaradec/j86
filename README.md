@@ -1,5 +1,41 @@
 # J86
-J86 is a multipass compiler that is structured to apply compiler optimisations techniques down to x86 assembly.
+J86 is a multipass compiler that is structured to apply compiler optimisations techniques down to x86 assembly. The language is sort of C like. The project is mostly focused on good structure for applying optimisation. The syntax supports functions, variables, if and while control flow constructions and 32 bits integers.
+
+Here is a recursion examples: 
+```
+FUNCTION fact(i : INT32) : INT32 {
+    IF( i == 1 ) { RETURN 1; }
+    RETURN i * fact(i-1);
+}
+
+FUNCTION main() : INT32 {
+    LET a:INT32 = fact(5);
+    IF( a == 120 ) {
+        printf("RECURSION OK");
+    } ELSE {
+        printf("RECURSION NOK");
+    }
+    RETURN 0;
+}
+```
+
+Here is a while loop test:
+```
+FUNCTION main() : INT32 {
+    LET a : INT32 = 0;
+    WHILE(a != 10) {
+        a = a + 1;
+    }
+    IF(a == 10) {
+        printf("WHILE OK");
+    } ELSE {
+        printf("WHILE NOK");
+    }
+    RETURN 0;
+}
+```
+
+You can find a few more examples in examples in the project.
 
 The simplest way to try it is to use the following that build, assemble, link and run executable through a docker container configured with all necessary tools:
 
