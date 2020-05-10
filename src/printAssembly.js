@@ -102,7 +102,8 @@ function printAssembly(nodes) {
                 ins.r.reverse().forEach((r)=>printIns(`push ${v(r)}`));
                 printIns(`call ${ins.name}`);
                 printIns(`add esp, ${ins.r.length * 4}`);
-                printIns(`mov ${v(ins.w)}, eax`);
+                if(ins.w.type != 'VOID')
+                    printIns(`mov ${v(ins.w)}, eax`);
             } else if (ins.op == 'functionStart') {
                 console.log(`${ins.name}:`);
                 printIns('push ebp');

@@ -38,7 +38,10 @@ function toStringIR(b) {
         } else if (ins.op == 'return') {
             text.push(`return ${v(ins.r[0])}`);
         } else if (ins.op == 'call') {
-            text.push(`call ${ins.name}(${ins.r.map(x=>x.v).join(', ')})`);
+            if(ins.w.type == 'VOID')
+                text.push(`call ${ins.name}(${ins.r.map(x=>x.v).join(', ')})`);
+            else
+                text.push(`${v(ins.w)} = call ${ins.name}(${ins.r.map(x=>x.v).join(', ')})`);
         } else if (ins.op == 'functionStart') {
             text.push(`function ${ins.name}(${Object.keys(ins.args).join(',')})`);
             // console.log('SUB ESP, 12');

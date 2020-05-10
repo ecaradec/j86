@@ -516,7 +516,7 @@ function parseProgram() {
 }
 
 const functionDeclarations = {
-    printf: {args: ['str'], returnType: 'INT32'},
+    printf: {args: ['str'], returnType: 'VOID'},
 };
 
 let blockId = 0;
