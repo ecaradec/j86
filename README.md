@@ -1,4 +1,35 @@
--   TODO
+# J86
+J86 is a multipass compiler that is structured to apply compiler optimisations techniques down to x86 assembly.
+
+The simplest way to try it is to use the following that build, assemble, link and run executable through a docker container configured with all necessary tools:
+
+./run.sh function.msl
+
+It is also possible to run the compiler through node directly, by running the line below, which output assembly code in file.asm.
+
+nodejs /code/src/compiler.js /code/examples/function.msl
+
+The compiler works in multiple passes. It's possible to print output of each pass by adding the --debug to the compiler. Working in passes in very useful as it allows to spot issues in higher passes which are less verbose than what full assembled code can be.
+
+# Optimisations
+
+The optimisations currently applied are:
+- Register allocation:
+  - Instead of storing variable in memory, use registers if available. The implementation use graph coloration algorithm for selecting a good selection.
+  - If no registers are available, the compiler use spill variables for storing results.
+- Variable and constants propagation:
+  - When a variable is assigned to another variable, the first variable can be used as a replacement for the second one: a = 1; b = a; c = b; can be replaced by a = 1; b = a; c = a;. 
+- Dropping unused instructions:
+  -  If a value is never read, operations that produced it are not necessary to even compute it. The compiler does this in simple cases. Its effectiveness is improved by the variables and constants propagation.
+
+## SSA transform
+
+One of the interesting aspect of the compiler is the transformation of the code to SSA form using classical R. CYTRON paper here: https://www.cs.utexas.edu/~pingali/CS380C/2010/papers/ssaCytron.pdf
+R. This is the same algorithm LLVM use. This use the notion of dominance frontier, which is a graph theory notion. I used the following paper for implementation https://www.cs.rice.edu/~keith/EMBED/dom.pdf.
+
+Both papers are a bit of a dense read, so if you want to get a introduction to SSA transform, I recommend this set of slides: https://web.stanford.edu/class/archive/cs/cs143/cs143.1128/lectures/17/Slides17.pdf.
+
+## TODO
 
 *   [x] support of return values
 *   [x] support of parameters in calls
@@ -14,22 +45,12 @@
 *   [x] output to NASM format ?
 *   [x] replace load and store by marking variables on SSA on first use (and only use store explicitly)
 *   [/] support of types (int and int*)
-*   [ ] list the optimisation done by project
+*   [x] list the optimisation done by project
+*   [x] replace store->load by replacement of the register
+*   [x] replace load->load by replacement of the register
 *   [ ] process dominance by function
 *   [ ] use a keyword for declaring value instead of just initializing it ?
 *   [ ] let functions returns values by pointer or in eax depending of size
 *   [ ] support of structures
-*   [x] replace store->load by replacement of the register
-*   [x] replace load->load by replacement of the register
 *   [ ] Handle larger types like int64 by adding a way to address partial variable in IR ?
-    // convert larger types to registers logic ?
-    r1 = 1
-    r3 = add r2, 1
-    a[0] = r3 // syntax for variable offset in bytes
-    r1 = 1
-    r3 = adc r2, 1
-    a[4] = r3 // done
-    OR
-    r1 = 1
-    r3 = add r2, 1
-
+    [ ] support of int64 using adc
