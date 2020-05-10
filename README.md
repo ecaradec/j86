@@ -1,7 +1,7 @@
 # J86
 J86 is a multipass compiler that is structured to apply compiler optimisations techniques down to x86 assembly. The language is sort of C like. The project is mostly focused on good structure for applying optimisation. The syntax supports functions, variables, if and while control flow constructions and 32 bits integers.
 
-Here is a recursion examples: 
+Here is a recursion example: 
 ```
 FUNCTION fact(i : INT32) : INT32 {
     IF( i == 1 ) { RETURN 1; }
@@ -19,7 +19,7 @@ FUNCTION main() : INT32 {
 }
 ```
 
-Here is a while loop test:
+And a while loop one:
 ```
 FUNCTION main() : INT32 {
     LET a : INT32 = 0;
