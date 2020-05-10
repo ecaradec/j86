@@ -33,24 +33,22 @@ Both papers are a bit of a dense read, so if you want to get a introduction to S
 
 *   [x] support of return values
 *   [x] support of parameters in calls
-*   [x] support of function call (push on stack)
 *   [x] spill variable handling (variable not replaced by registers are spill variable possibly ) ?
 *   [x] recycle spill variable
-*   [x] allows referencing a parameter
 *   [x] save and restore registers in callee
 *   [x] allocate space on stack for local variables
 *   [x] support of string
 *   [x] support of printing
-*   [x] support of global variables ?
-*   [x] output to NASM format ?
+*   [x] output to NASM format
 *   [x] replace load and store by marking variables on SSA on first use (and only use store explicitly)
-*   [/] support of types (int and int*)
-*   [x] list the optimisation done by project
 *   [x] replace store->load by replacement of the register
 *   [x] replace load->load by replacement of the register
-*   [ ] process dominance by function
+*   [x] support of callee and caller registers 
+*   [x] compute process dominance function by function
+*   [ ] support of global variables
+*   [ ] support of types (int and int*)
 *   [ ] use a keyword for declaring value instead of just initializing it ?
 *   [ ] let functions returns values by pointer or in eax depending of size
 *   [ ] support of structures
 *   [ ] Handle larger types like int64 by adding a way to address partial variable in IR ?
-    [ ] support of int64 using adc
+*   [ ] support of int64 using adc
